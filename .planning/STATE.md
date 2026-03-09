@@ -22,17 +22,19 @@
 
 | Field | Value |
 |-------|-------|
-| **Active Phase** | Phase 1 — Domain Entities & Design Patterns |
-| **Next Phase** | Phase 2 — DAO & Service Layers |
-| **Blocking Issue** | None — ROADMAP approved, executing Phase 1 |
+| **Active Phase** | Phase 5 — Dashboard & Presenter Mode (New) |
+| **Status** | 🟢 ALL CORE PHASES COMPLETED |
+| **Blocking Issue** | None — System is fully operational |
 
 ---
 
-## Entity Model (Strictly 5 Tables)
+## Entity Model (7 Tables - Upgraded)
 
 | Entity | Key Fields |
 |--------|-----------|
-| `Drug` | barcode, name, type, dose, costPrice, sellingPrice, stockQuantity, productionDate, expirationDate |
+| `Drug` | barcode, name, type, dose, costPrice, sellingPrice, stockQuantity, productionDate, expirationDate, categoryId, prescriptionType |
+| `Category` | id, name, description |
+| `User` | id, username, password, role |
 | `Purchase` | id, drugId, quantityAdded, purchaseDate |
 | `Sale` | id, totalAmount, saleDate |
 | `SaleItem` (HistorySale) | id, saleId, drugId, quantity, unitPrice |
@@ -51,12 +53,14 @@
 
 ---
 
-## Hard Constraints
+## Hard Constraints (Updated)
 
-- ❌ NO Users entity, NO Login system, NO Companies, NO Messages
-- ❌ NO hard-coded Swing layouts (no `GroupLayout`, no `setBounds`)
-- ✅ Swing UI communicates with backend via REST API only (`ApiClient`)
-- ✅ GUI forms designed manually by student via drag-and-drop GUI Builder
+- ✅ **Users entity** added for basic plain-text login (dashboard requirement).
+- ✅ **Category entity** added for Figma UI alignment.
+- ❌ NO Spring Security (kept plain-text for simplicity).
+- ❌ NO hard-coded Swing layouts (no `GroupLayout`, no `setBounds`).
+- ✅ Swing UI communicates with backend via REST API only (`ApiClient`).
+- ✅ GUI forms designed manually by student via drag-and-drop GUI Builder.
 
 ---
 
@@ -65,14 +69,17 @@
 - [x] GSD framework installed (`.agents/`)
 - [x] STATE.md initialized
 - [x] ROADMAP.md created
+- [x] Execute Phase 1: Domain Entities & Design Patterns (including Category and User)
+- [x] Execute Phase 2: DAO & Service Layers
+- [x] Execute Phase 3: REST API Controllers
+- [x] Execute Phase 4: Frontend API Clients & Swing Event Logic
+- [x] Create Presentation Battle Plan (`PROJE_TEKNIK_REHBER_VE_SUNUM_STRATEJISI.md`)
 
 ## Pending Steps
 
-- [ ] User approves ROADMAP.md
-- [ ] Execute Phase 1: Domain Entities & Design Patterns
-- [ ] Execute Phase 2: DAO & Service Layers
-- [ ] Execute Phase 3: REST API Controllers
-- [ ] Execute Phase 4: Frontend API Clients & Swing Event Logic
+- [ ] **Java 25'e Tekrar Geçiş Denemesi** (ÖNEMLİ: `pom.xml` dosyasındaki `java.version` 25 yapılıp çalıştırılarak test edilecek)
+- [ ] Complete Frontend GUI binding in IntelliJ IDEA (ÖNEMLİ: Agent **KESİNLİKLE UI tasarımı veya kodlaması YAPMAYACAKTIR**. Tüm arayüz öğrenci tarafından IntelliJ GUI Builder ile sürükle-bırak yöntemiyle oluşturulacak. Agent sadece Endpointleri ve Event metodlarını bağlayacaktır.)
+- [ ] Prepare for final presentation using the Battle Plan
 
 ---
 
