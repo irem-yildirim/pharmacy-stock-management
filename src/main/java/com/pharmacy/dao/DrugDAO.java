@@ -30,4 +30,14 @@ public interface DrugDAO extends JpaRepository<Drug, String> {
      * Find drugs whose expiration date is between two dates.
      */
     List<Drug> findByExpirationDateBetween(LocalDate from, LocalDate to);
+
+    /**
+     * Find drugs by category ID.
+     */
+    List<Drug> findByCategory_Id(Long categoryId);
+
+    /**
+     * Find drugs by prescription type.
+     */
+    List<Drug> findByPrescriptionType(String prescriptionType);
 }

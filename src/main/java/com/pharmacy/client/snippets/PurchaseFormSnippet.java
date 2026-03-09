@@ -7,7 +7,7 @@ import com.pharmacy.entity.Purchase;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.util.List;
-import java.util.Map;
+//import java.util.Map;
 
 /**
  * Swing event logic snippets for the Purchase / Stock Restock form.

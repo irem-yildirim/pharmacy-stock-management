@@ -61,4 +61,14 @@ public class DrugController {
     public ResponseEntity<List<Drug>> searchByName(@RequestParam String name) {
         return ResponseEntity.ok(drugService.searchByName(name));
     }
+
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<List<Drug>> getDrugsByCategory(@PathVariable Long categoryId) {
+        return ResponseEntity.ok(drugService.findByCategory(categoryId));
+    }
+
+    @GetMapping("/prescription-type/{type}")
+    public ResponseEntity<List<Drug>> getDrugsByPrescriptionType(@PathVariable String type) {
+        return ResponseEntity.ok(drugService.findByPrescriptionType(type));
+    }
 }

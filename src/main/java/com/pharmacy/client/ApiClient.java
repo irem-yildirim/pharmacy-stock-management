@@ -103,6 +103,31 @@ public class ApiClient {
         }
     }
 
+    /**
+     * Attempts to log in utilizing the /api/users/login endpoint.
+     *
+     * @param username The user's username
+     * @param password The user's password (plain text)
+     * @return The authenticated User object if successful, null if failed
+     */
+    public static com.pharmacy.entity.User login(String username, String password) {
+        try {
+            java.util.Map<String, String> creds = new java.util.HashMap<>();
+            creds.put("username", username);
+            creds.put("password", password);
+            String jsonBody = toJson(creds);
+
+            String response = post("/users/login", jsonBody);
+            if (response == null || response.isEmpty() || response.equals("Invalid credentials")) {
+                return null;
+            }
+            return parseJson(response, com.pharmacy.entity.User.class);
+        } catch (Exception e) {
+            System.err.println("[ApiClient] Login error: " + e.getMessage());
+            return null;
+        }
+    }
+
     // ── JSON Parsing Helpers ──────────────────────────────────────────────────
 
     /**

@@ -53,6 +53,8 @@ public class DrugBuilder {
     private int stockQuantity;
     private LocalDate productionDate;
     private LocalDate expirationDate;
+    private com.pharmacy.entity.Category category;
+    private String prescriptionType;
 
     // ── Fluent setter methods ────────────────────────────────────────────────
 
@@ -101,6 +103,16 @@ public class DrugBuilder {
         return this;
     }
 
+    public DrugBuilder category(com.pharmacy.entity.Category category) {
+        this.category = category;
+        return this;
+    }
+
+    public DrugBuilder prescriptionType(String prescriptionType) {
+        this.prescriptionType = prescriptionType;
+        return this;
+    }
+
     // ── Build ────────────────────────────────────────────────────────────────
 
     /**
@@ -136,6 +148,8 @@ public class DrugBuilder {
         drug.setStockQuantity(stockQuantity);
         drug.setProductionDate(productionDate);
         drug.setExpirationDate(expirationDate);
+        drug.setCategory(category);
+        drug.setPrescriptionType(prescriptionType);
         return drug;
     }
 }

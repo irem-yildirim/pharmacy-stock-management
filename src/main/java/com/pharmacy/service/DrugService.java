@@ -60,4 +60,14 @@ public class DrugService {
         logger.log("Searching drugs by name: " + name);
         return drugDAO.findByNameContainingIgnoreCase(name);
     }
+
+    public List<Drug> findByCategory(Long categoryId) {
+        logger.log("Fetching drugs for category ID: " + categoryId);
+        return drugDAO.findByCategory_Id(categoryId);
+    }
+
+    public List<Drug> findByPrescriptionType(String prescriptionType) {
+        logger.log("Fetching drugs with prescription type: " + prescriptionType);
+        return drugDAO.findByPrescriptionType(prescriptionType);
+    }
 }

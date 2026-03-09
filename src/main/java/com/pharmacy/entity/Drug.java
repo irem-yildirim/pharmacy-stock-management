@@ -58,6 +58,13 @@ public class Drug {
     @JsonIgnore
     private Expiry expiry;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
+    @Column(name = "prescription_type", length = 50)
+    private String prescriptionType;
+
     // ── Constructors ─────────────────────────────────────────────────────────
 
     public Drug() {
@@ -173,6 +180,22 @@ public class Drug {
 
     public void setExpiry(Expiry expiry) {
         this.expiry = expiry;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+    }
+
+    public String getPrescriptionType() {
+        return prescriptionType;
+    }
+
+    public void setPrescriptionType(String prescriptionType) {
+        this.prescriptionType = prescriptionType;
     }
 
     @Override

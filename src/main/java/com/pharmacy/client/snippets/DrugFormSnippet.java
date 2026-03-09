@@ -160,4 +160,36 @@ public class DrugFormSnippet {
             }
         }.execute();
     }
+
+    // ── Load Categories into JComboBox ────────────────────────────────────────
+
+    /**
+     * Call this inside your form's constructor or a WindowOpened event
+     * to populate your Category dropdown.
+     */
+    public void loadCategories(JComboBox<String> cmbCategory) {
+        new SwingWorker<List<com.pharmacy.entity.Category>, Void>() {
+            @Override
+            protected List<com.pharmacy.entity.Category> doInBackground() {
+                String json = ApiClient.get("/categories");
+                return ApiClient.parseJsonList(json, new TypeReference<>() {
+                });
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<com.pharmacy.entity.Category> categories = get();
+                    cmbCategory.removeAllItems();
+                    for (com.pharmacy.entity.Category c : categories) {
+                        // In a real app, you might use a custom wrapper or ListCellRenderer
+                        // to store the Category object but display its name.
+                        cmbCategory.addItem(c.getName());
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "Error loading categories: " + ex.getMessage());
+                }
+            }
+        }.execute();
+    }
 }
