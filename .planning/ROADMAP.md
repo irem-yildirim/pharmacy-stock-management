@@ -3,7 +3,8 @@
 > **Methodology:** GSD (Get Shit Done)  
 > **Architecture:** Layered — Swing UI → REST API → Controller → Service → DAO → MySQL  
 > **Design Patterns Required:** Builder, Factory, Singleton, DAO  
-> **Entity Scope:** STRICTLY 5 tables (Drug, Purchase, Sale, SaleItem, Expiry)
+> **Entity Scope:** STRICTLY 5 tables (Drug, Purchase, Sale, SaleItem, Expiry)  
+> **Java Version:** 25
 
 ---
 

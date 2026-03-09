@@ -13,7 +13,7 @@
 | **Name** | Pharmacy Stock Management System |
 | **Type** | University Course Project |
 | **Goal** | Manage drug inventory, sales, and expiration dates |
-| **Stack** | Java 17 · Spring Boot · Spring Data JPA · MySQL · Maven · Java Swing |
+| **Stack** | Java 25 · Spring Boot · Spring Data JPA · MySQL · Maven · Java Swing |
 | **Paradigm** | Layered Architecture: Swing UI → REST API → Controller → Service → DAO → MySQL |
 
 ---
@@ -22,9 +22,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Active Phase** | Phase 0 — Planning & Initialization |
-| **Next Phase** | Phase 1 — Domain Entities & Design Patterns |
-| **Blocking Issue** | Awaiting user approval of ROADMAP.md |
+| **Active Phase** | Phase 1 — Domain Entities & Design Patterns |
+| **Next Phase** | Phase 2 — DAO & Service Layers |
+| **Blocking Issue** | None — ROADMAP approved, executing Phase 1 |
 
 ---
 
