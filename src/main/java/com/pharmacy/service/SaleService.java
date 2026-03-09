@@ -26,6 +26,7 @@ public class SaleService {
     private final DrugDAO drugDAO;
     private final AppLogger logger = AppLogger.getInstance();
 
+    @org.springframework.beans.factory.annotation.Autowired
     public SaleService(SaleDAO saleDAO, SaleItemDAO saleItemDAO, DrugDAO drugDAO) {
         this.saleDAO = saleDAO;
         this.saleItemDAO = saleItemDAO;

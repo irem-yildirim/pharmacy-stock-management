@@ -20,6 +20,7 @@ public class SaleController {
 
     private final SaleService saleService;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public SaleController(SaleService saleService) {
         this.saleService = saleService;
     }
