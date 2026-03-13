@@ -77,7 +77,7 @@
 
 ## Pending Steps
 
-- [ ] **Java 25'e Tekrar Geçiş Denemesi** (ÖNEMLİ: `pom.xml` dosyasındaki `java.version` 25 yapılıp çalıştırılarak test edilecek)
+- [x] **Java 25'e Tekrar Geçiş Denemesi** (ÖNEMLİ: `pom.xml` dosyasındaki `java.version` 25 yapılıp çalıştırılarak test edilecek)
 - [ ] Complete Frontend GUI binding in IntelliJ IDEA (ÖNEMLİ: Agent **KESİNLİKLE UI tasarımı veya kodlaması YAPMAYACAKTIR**. Tüm arayüz öğrenci tarafından IntelliJ GUI Builder ile sürükle-bırak yöntemiyle oluşturulacak. Agent sadece Endpointleri ve Event metodlarını bağlayacaktır.)
 - [ ] Prepare for final presentation using the Battle Plan
 

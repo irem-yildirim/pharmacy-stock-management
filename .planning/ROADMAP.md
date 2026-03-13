@@ -410,7 +410,7 @@
 
 The project is **DONE** when:
 
-- [ ] **Java 25'e Geçiş Denendi** (pom.xml java.version 25 yapılıp stabil çalıştığı doğrulandı)
+- [x] **Java 25'e Geçiş Denendi** (pom.xml java.version 25 yapılıp stabil çalıştığı doğrulandı)
 - [x] `mvn clean package` builds a runnable JAR without errors
 - [x] MySQL tables auto-created on first run (7 tables: drug, category, user, purchase, sale, sale_item, expiry)
 - [x] All REST endpoints respond correctly (verified via curl or Postman)
