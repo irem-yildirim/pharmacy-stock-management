@@ -2,18 +2,13 @@ package com.pharmacy.service;
 
 import com.pharmacy.dao.UserDAO;
 import com.pharmacy.entity.User;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
-@Service
 public class UserService {
 
     private final UserDAO userDAO;
 
-    @Autowired
     public UserService(UserDAO userDAO) {
         this.userDAO = userDAO;
     }
@@ -23,24 +18,27 @@ public class UserService {
     }
 
     public User saveUser(User user) {
-        return userDAO.save(user);
+        if (user.getId() != null) {
+            userDAO.update(user);
+        } else {
+            userDAO.save(user);
+        }
+        return user;
     }
 
     public void deleteUser(Long id) {
-        userDAO.deleteById(id);
+        userDAO.delete(id);
     }
 
     public boolean authenticate(String username, String password) {
-        Optional<User> userOpt = userDAO.findByUsername(username);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            // Plain text comparison as requested for this project scope
+        User user = userDAO.findByUsername(username);
+        if (user != null) {
             return user.getPassword().equals(password);
         }
         return false;
     }
 
     public User getUserByUsername(String username) {
-        return userDAO.findByUsername(username).orElse(null);
+        return userDAO.findByUsername(username);
     }
 }

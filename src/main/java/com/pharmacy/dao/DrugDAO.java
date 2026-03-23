@@ -1,43 +1,123 @@
 package com.pharmacy.dao;
 
 import com.pharmacy.entity.Drug;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import java.time.LocalDate;
+import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- * DAO (Data Access Object) interface for {@link Drug} entity.
- * Extends JpaRepository to inherit standard CRUD operations.
- * Named with "DAO" suffix per course convention.
- */
-@Repository
-public interface DrugDAO extends JpaRepository<Drug, String> {
+public class DrugDAO implements BaseDAO<Drug, String> {
 
-    /**
-     * Find drugs by name (case-insensitive contains search).
-     */
-    List<Drug> findByNameContainingIgnoreCase(String name);
+    @Override
+    public void save(Drug drug) {
+        String query = "INSERT INTO drug (barcode, name, type, dose, cost_price, selling_price, stock_quantity, production_date, expiration_date, prescription_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            pstmt.setString(1, drug.getBarcode());
+            pstmt.setString(2, drug.getName());
+            pstmt.setString(3, drug.getType());
+            pstmt.setString(4, drug.getDose());
+            pstmt.setBigDecimal(5, drug.getCostPrice());
+            pstmt.setBigDecimal(6, drug.getSellingPrice());
+            pstmt.setInt(7, drug.getStockQuantity());
+            pstmt.setDate(8, drug.getProductionDate() != null ? Date.valueOf(drug.getProductionDate()) : null);
+            pstmt.setDate(9, drug.getExpirationDate() != null ? Date.valueOf(drug.getExpirationDate()) : null);
+            pstmt.setString(10, drug.getPrescriptionType());
+            
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
-    /**
-     * Find drugs whose expiration date is before the given date (expired or
-     * expiring soon).
-     */
-    List<Drug> findByExpirationDateBefore(LocalDate date);
+    @Override
+    public void update(Drug drug) {
+        String query = "UPDATE drug SET name=?, type=?, dose=?, cost_price=?, selling_price=?, stock_quantity=?, production_date=?, expiration_date=?, prescription_type=? WHERE barcode=?";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            pstmt.setString(1, drug.getName());
+            pstmt.setString(2, drug.getType());
+            pstmt.setString(3, drug.getDose());
+            pstmt.setBigDecimal(4, drug.getCostPrice());
+            pstmt.setBigDecimal(5, drug.getSellingPrice());
+            pstmt.setInt(6, drug.getStockQuantity());
+            pstmt.setDate(7, drug.getProductionDate() != null ? Date.valueOf(drug.getProductionDate()) : null);
+            pstmt.setDate(8, drug.getExpirationDate() != null ? Date.valueOf(drug.getExpirationDate()) : null);
+            pstmt.setString(9, drug.getPrescriptionType());
+            pstmt.setString(10, drug.getBarcode());
+            
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
-    /**
-     * Find drugs whose expiration date is between two dates.
-     */
-    List<Drug> findByExpirationDateBetween(LocalDate from, LocalDate to);
+    @Override
+    public void delete(String barcode) {
+        String query = "DELETE FROM drug WHERE barcode=?";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            pstmt.setString(1, barcode);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
-    /**
-     * Find drugs by category ID.
-     */
-    List<Drug> findByCategory_Id(Long categoryId);
+    @Override
+    public Drug findById(String barcode) {
+        String query = "SELECT * FROM drug WHERE barcode=?";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            pstmt.setString(1, barcode);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToDrug(rs);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
-    /**
-     * Find drugs by prescription type.
-     */
-    List<Drug> findByPrescriptionType(String prescriptionType);
+    @Override
+    public List<Drug> findAll() {
+        List<Drug> drugs = new ArrayList<>();
+        String query = "SELECT * FROM drug";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query);
+             ResultSet rs = pstmt.executeQuery()) {
+            
+            while (rs.next()) {
+                drugs.add(mapResultSetToDrug(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return drugs;
+    }
+
+    private Drug mapResultSetToDrug(ResultSet rs) throws SQLException {
+        Drug drug = new Drug();
+        drug.setBarcode(rs.getString("barcode"));
+        drug.setName(rs.getString("name"));
+        drug.setType(rs.getString("type"));
+        drug.setDose(rs.getString("dose"));
+        drug.setCostPrice(rs.getBigDecimal("cost_price"));
+        drug.setSellingPrice(rs.getBigDecimal("selling_price"));
+        drug.setStockQuantity(rs.getInt("stock_quantity"));
+        
+        Date prodDate = rs.getDate("production_date");
+        if (prodDate != null) drug.setProductionDate(prodDate.toLocalDate());
+        
+        Date expDate = rs.getDate("expiration_date");
+        if (expDate != null) drug.setExpirationDate(expDate.toLocalDate());
+        
+        drug.setPrescriptionType(rs.getString("prescription_type"));
+        return drug;
+    }
 }

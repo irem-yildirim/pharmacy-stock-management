@@ -2,17 +2,12 @@ package com.pharmacy.service;
 
 import com.pharmacy.dao.CategoryDAO;
 import com.pharmacy.entity.Category;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
 public class CategoryService {
-
     private final CategoryDAO categoryDAO;
 
-    @Autowired
     public CategoryService(CategoryDAO categoryDAO) {
         this.categoryDAO = categoryDAO;
     }
@@ -22,14 +17,19 @@ public class CategoryService {
     }
 
     public Category getCategoryById(Long id) {
-        return categoryDAO.findById(id).orElse(null);
+        return categoryDAO.findById(id);
     }
 
     public Category saveCategory(Category category) {
-        return categoryDAO.save(category);
+        if (category.getId() != null) {
+            categoryDAO.update(category);
+        } else {
+            categoryDAO.save(category);
+        }
+        return category;
     }
 
     public void deleteCategory(Long id) {
-        categoryDAO.deleteById(id);
+        categoryDAO.delete(id);
     }
 }
