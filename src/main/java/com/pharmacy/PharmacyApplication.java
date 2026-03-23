@@ -30,7 +30,7 @@ public class PharmacyApplication {
         CategoryService categoryService = new CategoryService(categoryDAO);
         PurchaseService purchaseService = new PurchaseService(purchaseDAO, drugDAO);
         SaleService saleService = new SaleService(saleDAO, saleItemDAO, drugDAO);
-        ExpiryService expiryService = new ExpiryService(expiryDAO, drugDAO);
+        ExpiryService expiryService = new ExpiryService(expiryDAO);
 
         logger.log("System initialization complete. Modules are ready.");
 

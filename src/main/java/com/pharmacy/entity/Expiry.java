@@ -1,15 +1,19 @@
 package com.pharmacy.entity;
 
+import java.time.LocalDate;
+
 public class Expiry {
     private Long id;
     private Drug drug;
+    private LocalDate expirationDate;
     private long daysRemaining;
     private String status;
 
     public Expiry() {}
 
-    public Expiry(Drug drug, long daysRemaining, String status) {
+    public Expiry(Drug drug, LocalDate expirationDate, long daysRemaining, String status) {
         this.drug = drug;
+        this.expirationDate = expirationDate;
         this.daysRemaining = daysRemaining;
         this.status = status;
     }
@@ -18,6 +22,8 @@ public class Expiry {
     public void setId(Long id) { this.id = id; }
     public Drug getDrug() { return drug; }
     public void setDrug(Drug drug) { this.drug = drug; }
+    public LocalDate getExpirationDate() { return expirationDate; }
+    public void setExpirationDate(LocalDate expirationDate) { this.expirationDate = expirationDate; }
     public long getDaysRemaining() { return daysRemaining; }
     public void setDaysRemaining(long daysRemaining) { this.daysRemaining = daysRemaining; }
     public String getStatus() { return status; }
@@ -26,6 +32,6 @@ public class Expiry {
     @Override
     public String toString() {
         return "Expiry{drugBarcode=" + (drug != null ? drug.getBarcode() : "null")
-                + ", daysRemaining=" + daysRemaining + ", status='" + status + "'}";
+                + ", expDate=" + expirationDate + ", daysRemaining=" + daysRemaining + ", status='" + status + "'}";
     }
 }

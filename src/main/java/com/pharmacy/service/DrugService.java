@@ -4,7 +4,6 @@ import com.pharmacy.dao.DrugDAO;
 import com.pharmacy.entity.Drug;
 import com.pharmacy.pattern.AppLogger;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,14 +47,6 @@ public class DrugService {
         return drugDAO.findById(barcode);
     }
 
-    public List<Drug> findExpiringSoon(int daysThreshold) {
-        logger.log("Fetching drugs expiring within " + daysThreshold + " days");
-        LocalDate threshold = LocalDate.now().plusDays(daysThreshold);
-        return drugDAO.findAll().stream()
-                .filter(d -> d.getExpirationDate() != null && d.getExpirationDate().isBefore(threshold))
-                .collect(Collectors.toList());
-    }
-
     public List<Drug> searchByName(String name) {
         logger.log("Searching drugs by name: " + name);
         String lowerName = name.toLowerCase();
@@ -66,13 +57,8 @@ public class DrugService {
 
     public List<Drug> findByCategory(Long categoryId) {
         logger.log("Fetching drugs for category ID: " + categoryId);
-        return java.util.Collections.emptyList();
-    }
-
-    public List<Drug> findByPrescriptionType(String prescriptionType) {
-        logger.log("Fetching drugs with prescription type: " + prescriptionType);
         return drugDAO.findAll().stream()
-                .filter(d -> prescriptionType.equals(d.getPrescriptionType()))
+                .filter(d -> d.getCategory() != null && categoryId.equals(d.getCategory().getId()))
                 .collect(Collectors.toList());
     }
 }

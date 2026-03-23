@@ -1,8 +1,6 @@
 package com.pharmacy.service;
 
-import com.pharmacy.dao.DrugDAO;
 import com.pharmacy.dao.ExpiryDAO;
-import com.pharmacy.entity.Drug;
 import com.pharmacy.entity.Expiry;
 import com.pharmacy.pattern.AppLogger;
 
@@ -15,22 +13,24 @@ public class ExpiryService {
     private static final int CRITICAL_THRESHOLD_DAYS = 30;
 
     private final ExpiryDAO expiryDAO;
-    private final DrugDAO drugDAO;
     private final AppLogger logger = AppLogger.getInstance();
 
-    public ExpiryService(ExpiryDAO expiryDAO, DrugDAO drugDAO) {
+    public ExpiryService(ExpiryDAO expiryDAO) {
         this.expiryDAO = expiryDAO;
-        this.drugDAO = drugDAO;
     }
 
+    /**
+     * Refreshes the daysRemaining and status for all Expiry records.
+     * It relies entirely on the Expiry table, completely decoupled from Drug tracking.
+     */
     public void refreshExpiry() {
-        logger.log("Refreshing expiry records for all drugs...");
-        List<Drug> drugs = drugDAO.findAll();
+        logger.log("Refreshing expiry records...");
+        List<Expiry> expiries = expiryDAO.findAll();
 
-        for (Drug drug : drugs) {
-            if (drug.getExpirationDate() == null) continue;
+        for (Expiry expiry : expiries) {
+            if (expiry.getExpirationDate() == null) continue;
             
-            long daysRemaining = ChronoUnit.DAYS.between(LocalDate.now(), drug.getExpirationDate());
+            long daysRemaining = ChronoUnit.DAYS.between(LocalDate.now(), expiry.getExpirationDate());
 
             String status;
             if (daysRemaining <= 0) {
@@ -41,21 +41,12 @@ public class ExpiryService {
                 status = "OK";
             }
 
-            Expiry expiry = expiryDAO.findByDrugBarcode(drug.getBarcode());
-            if (expiry == null) {
-                expiry = new Expiry();
-                expiry.setDrug(drug);
-                expiry.setDaysRemaining(daysRemaining);
-                expiry.setStatus(status);
-                expiryDAO.save(expiry);
-            } else {
-                expiry.setDaysRemaining(daysRemaining);
-                expiry.setStatus(status);
-                expiryDAO.update(expiry);
-            }
+            expiry.setDaysRemaining(daysRemaining);
+            expiry.setStatus(status);
+            expiryDAO.update(expiry);
         }
 
-        logger.log("Expiry refresh complete. " + drugs.size() + " drug(s) processed.");
+        logger.log("Expiry refresh complete. " + expiries.size() + " record(s) processed.");
     }
 
     public List<Expiry> getExpiredDrugs() {
