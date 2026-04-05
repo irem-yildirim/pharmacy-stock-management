@@ -16,11 +16,12 @@ public class LoginView extends JFrame {
     private JComboBox<User> userCombo;
     private JPasswordField passwordField;
     private RoundedButton loginButton;
+    private JLabel roleLabel;
 
     public LoginView(LoginController loginController) {
         this.loginController = loginController;
         setTitle("Pharmacy Management System - Login");
-        setSize(360, 440);
+        setSize(360, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -53,6 +54,15 @@ public class LoginView extends JFrame {
             userCombo.addItem(u);
         }
 
+        // Role badge — updates dynamically when user selection changes
+        roleLabel = new JLabel("");
+        roleLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+        roleLabel.setForeground(ACCENT);
+        roleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        updateRoleLabel();
+
+        userCombo.addActionListener(e -> updateRoleLabel());
+
         // Password label
         JLabel passLabel = new JLabel("Password");
         passLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
@@ -75,6 +85,8 @@ public class LoginView extends JFrame {
         mainPanel.add(userLabel);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 6)));
         mainPanel.add(userCombo);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 6)));
+        mainPanel.add(roleLabel);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 16)));
         mainPanel.add(passLabel);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 6)));
@@ -84,6 +96,15 @@ public class LoginView extends JFrame {
         mainPanel.add(Box.createVerticalGlue());
 
         add(mainPanel);
+    }
+
+    private void updateRoleLabel() {
+        User selected = (User) userCombo.getSelectedItem();
+        if (selected != null && selected.getRole() != null) {
+            roleLabel.setText("\uD83D\uDD11 Role: " + selected.getRole());
+        } else {
+            roleLabel.setText("");
+        }
     }
 
     // SWINGWORKER (ASYNC EDT PROTECTION)

@@ -35,6 +35,13 @@ public class Main {
                 CategoryDAO categoryDAO = new CategoryDAO();
                 ExpiryDAO expiryDAO = new ExpiryDAO();
 
+                // Verify seed worked
+                int userCount = userDAO.findAll().size();
+                System.out.println("[Main] Users in DB: " + userCount);
+                if (userCount == 0) {
+                    System.err.println("[Main] WARNING: No users found! Login will fail.");
+                }
+
                 // 3. Service Katmanı (İş Mantığı)
                 UserService userService = new UserService(userDAO);
                 DrugService drugService = new DrugService(drugDAO);
