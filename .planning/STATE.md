@@ -1,8 +1,8 @@
 # STATE.md — Pharmacy Stock Management System
 
-> **Last Updated:** 2026-03-09  
-> **Session:** 1 — Initial Planning  
-> **Status:** 🟡 PLANNING — Awaiting user approval of ROADMAP.md
+> **Last Updated:** 2026-04-05
+> **Session:** 2 — Architecting UI & Vanilla MVC Interactions
+> **Status:** 🟢 IN PROGRESS — UI Action Binding
 
 ---
 
@@ -12,9 +12,9 @@
 |-------|-------|
 | **Name** | Pharmacy Stock Management System |
 | **Type** | University Course Project |
-| **Goal** | Manage drug inventory, sales, and expiration dates |
-| **Stack** | Java 25 · Spring Boot · Spring Data JPA · MySQL · Maven · Java Swing |
-| **Paradigm** | Layered Architecture: Swing UI → REST API → Controller → Service → DAO → MySQL |
+| **Goal** | Manage drug inventory, sales, and expiration dates utilizing hardcore Vanilla Java principles |
+| **Stack** | Java 25 · MySQL · Maven · Vanilla Java Swing (JDBC) |
+| **Paradigm** | Native Layered Architecture: Swing UI → Service Layer → Generic DAO → JDBC → MySQL |
 
 ---
 
@@ -22,73 +22,59 @@
 
 | Field | Value |
 |-------|-------|
-| **Active Phase** | Phase 5 — Dashboard & Presenter Mode (New) |
-| **Status** | 🟢 ALL CORE PHASES COMPLETED |
-| **Blocking Issue** | None — System is fully operational |
+| **Active Phase** | Phase 4 — Swing UI Form Implementations & Action Listeners |
+| **Status** | 🟡 INTEGRATING UI COMPONENTS WITH BUSINESS LOGIC |
+| **Blocking Issue** | Connecting GUI buttons/forms with Service methods safely |
 
 ---
 
-## Entity Model (7 Tables - Upgraded)
+## Entity Model (7 Tables - Vanilla POJO)
 
 | Entity | Key Fields |
 |--------|-----------|
-| `Drug` | barcode, name, type, dose, costPrice, sellingPrice, stockQuantity, productionDate, expirationDate, categoryId, prescriptionType |
+| `Drug` | barcode, name, dose, costPrice, sellingPrice, stockQuantity |
 | `Category` | id, name, description |
 | `User` | id, username, password, role |
 | `Purchase` | id, drugId, quantityAdded, purchaseDate |
 | `Sale` | id, totalAmount, saleDate |
-| `SaleItem` (HistorySale) | id, saleId, drugId, quantity, unitPrice |
+| `SaleItem` | id, saleId, drugId, quantity, unitPrice |
 | `Expiry` | id, drugId, daysRemaining, status |
 
 ---
 
-## Design Patterns (Required for Report)
+## Design Patterns (Manual Hand-Implementation)
 
 | Pattern | Implementation Target | Purpose |
 |---------|-----------------------|---------|
-| **Builder** | `DrugBuilder` class | Solves telescoping constructor problem for `Drug` |
-| **Factory** | `TransactionFactory` | Creates `Sale`/`Purchase` with auto-injected `LocalDate.now()` |
-| **Singleton** | `AppLogger` class | Global logging mechanism |
-| **DAO** | `DrugDAO`, `SaleDAO`, etc. | Spring Data JPA interfaces with DAO suffix |
+| **Builder** | `DrugBuilder` class | Eliminates telescoping constructor problem |
+| **Factory** | `TransactionFactory` | Isolates standard object creation safely |
+| **Singleton** | `AppLogger` & `DBConnection` | Centralizes native resources and states |
+| **DAO** | `Native Custom DAOs` | Securely manages SQL generation out of sight from business logic |
 
 ---
 
-## Hard Constraints (Updated)
+## Hard Constraints (Vanilla OOP Focus)
 
-- ✅ **Users entity** added for basic plain-text login (dashboard requirement).
-- ✅ **Category entity** added for Figma UI alignment.
-- ❌ NO Spring Security (kept plain-text for simplicity).
-- ❌ NO hard-coded Swing layouts (no `GroupLayout`, no `setBounds`).
-- ✅ Swing UI communicates with backend via REST API only (`ApiClient`).
-- ✅ GUI forms designed manually by student via drag-and-drop GUI Builder.
+- ✅ **No Framework Abstractions:** Project actively refuses Spring Boot/JPA to demonstrate pure computer science structural intelligence and raw Object-Oriented patterns.
+- ✅ **Swing UI Layer Separation (Desktop MVC):** All View code stays purely graphical. Events route to backend Service classes without touching database protocols.
+- ✅ **JDBC Prepared Statements Only:** Extreme protection against database manipulation natively.
 
 ---
 
 ## Completed Steps
 
-- [x] GSD framework installed (`.agents/`)
-- [x] STATE.md initialized
-- [x] ROADMAP.md created
-- [x] Execute Phase 1: Domain Entities & Design Patterns (including Category and User)
-- [x] Execute Phase 2: DAO & Service Layers
-- [x] Execute Phase 3: REST API Controllers
-- [x] Execute Phase 4: Frontend API Clients & Swing Event Logic
-- [x] Create Presentation Battle Plan (`PROJE_TEKNIK_REHBER_VE_SUNUM_STRATEJISI.md`)
+- [x] GSD framework setup initialized.
+- [x] Java 25 compilation and property configuration (`pom.xml`).
+- [x] Build core JDBC engine logic (`DBConnection`).
+- [x] 7 POJO base classes finalized successfully without annotations.
+- [x] Implemented Native Database Access Layer (DAOs).
+- [x] Completed Pure Business Services (`UserService`, `DrugService`, etc).
 
-## Pending Steps
+## Pending Steps (Action Items)
 
-- [x] **Java 25'e Tekrar Geçiş Denemesi** (ÖNEMLİ: `pom.xml` dosyasındaki `java.version` 25 yapılıp çalıştırılarak test edilecek)
-- [ ] Complete Frontend GUI binding in IntelliJ IDEA (ÖNEMLİ: Agent **KESİNLİKLE UI tasarımı veya kodlaması YAPMAYACAKTIR**. Tüm arayüz öğrenci tarafından IntelliJ GUI Builder ile sürükle-bırak yöntemiyle oluşturulacak. Agent sadece Endpointleri ve Event metodlarını bağlayacaktır.)
-- [ ] Prepare for final presentation using the Battle Plan
-
----
-
-## File Registry
-
-| File | Purpose |
-|------|---------|
-| `.planning/STATE.md` | Session state and project context |
-| `.planning/ROADMAP.md` | Phase-by-phase execution plan |
+- [ ] Connect `LoginFrame` interactions to `UserService`.
+- [ ] Connect graphical `DrugForm` save buttons to `DrugService` capabilities.
+- [ ] Build multi-table action logic for `SaleService`.
 
 ---
 

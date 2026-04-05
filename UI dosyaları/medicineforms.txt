@@ -1,0 +1,482 @@
+package com.pharmacy.views;
+
+import com.pharmacy.controllers.MedicineController;
+import com.pharmacy.models.*;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+
+import static com.pharmacy.views.ThemeConstants.*;
+
+public class MedicineFormView extends JDialog {
+    private final MedicineController controller;
+    private final DashboardView parent;
+    private final Medicine medicine;
+
+    private JTextField nameField, quantityField, expDateField, descField, costField, doseField, prodDateField, priceField;
+    private JComboBox<MedicineCategory> categoryCombo;
+    private JComboBox<Brand> brandCombo;
+    private JComboBox<Supplier> supplierCombo;
+    private JComboBox<PresType> presTypeCombo;
+
+    public MedicineFormView(DashboardView parent, MedicineController controller, Medicine medicine) {
+        super(parent, medicine == null ? "Add Medicine" : "Edit Medicine", true);
+        this.parent = parent;
+        this.controller = controller;
+        this.medicine = medicine;
+
+        setSize(500, 680);
+        setLocationRelativeTo(parent);
+        setResizable(false);
+        getContentPane().setBackground(BG_WHITE);
+
+        initComponents();
+        if (this.medicine != null) populateFields();
+    }
+
+    private void initComponents() {
+        setLayout(new BorderLayout());
+
+        // ── Header bar ────────────────────────────────────────────────────────
+        JPanel header = new JPanel(new BorderLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(SIDEBAR_BG);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
+        header.setOpaque(false);
+        header.setPreferredSize(new Dimension(0, 58));
+        header.setBorder(new EmptyBorder(0, 22, 0, 22));
+
+        JLabel titleLbl = new JLabel(medicine == null ? "💊 Add Medicine" : "✏️ Edit Medicine");
+        titleLbl.setFont(new Font("SansSerif", Font.BOLD, 17));
+        titleLbl.setForeground(Color.WHITE);
+        header.add(titleLbl, BorderLayout.CENTER);
+        add(header, BorderLayout.NORTH);
+
+        // ── Scrollable form body ──────────────────────────────────────────────
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setBackground(BG_WHITE);
+        formPanel.setBorder(new EmptyBorder(20, 24, 10, 24));
+
+        // Field rows
+        nameField      = addFormRow(formPanel, "Medicine Name *",       "e.g. Amoxicillin");
+        quantityField  = addFormRow(formPanel, "Quantity *",             "e.g. 50");
+        expDateField   = addFormRow(formPanel, "Expiry Date (YYYY-MM-DD)", "e.g. 2026-12-31");
+        prodDateField  = addFormRow(formPanel, "Production Date (YYYY-MM-DD)", "e.g. 2024-01-01");
+        priceField     = addFormRow(formPanel, "Price *",                "e.g. 9.99");
+        costField      = addFormRow(formPanel, "Cost",                   "e.g. 5.50");
+        doseField      = addFormRow(formPanel, "Dose (mg)",              "e.g. 500");
+        descField      = addFormRow(formPanel, "Description",            "Short description…");
+
+        // Combo rows
+        presTypeCombo  = addComboRow(formPanel, "Prescription Type");
+        categoryCombo  = addComboRow(formPanel, "Category");
+        brandCombo     = addComboRow(formPanel, "Brand");
+        supplierCombo  = addComboRow(formPanel, "Supplier");
+
+        setupPresTypeCombo();
+        setupCategoryCombo();
+        setupBrandCombo();
+        setupSupplierCombo();
+        styleAllCombos();
+
+        JScrollPane scroll = new JScrollPane(formPanel);
+        scroll.setBorder(null);
+        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
+        scroll.getHorizontalScrollBar().setPreferredSize(new Dimension(0, 0));
+        scroll.getVerticalScrollBar().setUnitIncrement(12);
+        add(scroll, BorderLayout.CENTER);
+
+        // ── Bottom button bar ─────────────────────────────────────────────────
+        JPanel btnBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
+        btnBar.setBackground(new Color(248, 248, 248));
+        btnBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 220, 220)));
+
+        JButton cancelBtn = createOutlineButton("Cancel");
+        JButton deleteBtn = createOutlineButton("Delete Medicine");
+        deleteBtn.setForeground(new Color(220, 60, 60)); // Red tint for destructive action
+        JButton saveBtn   = createAccentButton(medicine == null ? "Add Medicine" : "Save Changes");
+
+        cancelBtn.addActionListener(e -> dispose());
+        deleteBtn.addActionListener(e -> showDeleteConfirmation());
+        saveBtn.addActionListener(e -> saveMedicine());
+
+        btnBar.add(cancelBtn);
+        if (medicine != null) {
+            btnBar.add(deleteBtn);
+        }
+        btnBar.add(saveBtn);
+        add(btnBar, BorderLayout.SOUTH);
+    }
+
+    private void showDeleteConfirmation() {
+        JDialog d = new JDialog(this, "Confirm Deletion", true);
+        d.setSize(420, 260);
+        d.setLocationRelativeTo(this);
+        d.setLayout(new BorderLayout());
+        d.getContentPane().setBackground(BG_WHITE);
+
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(BG_WHITE);
+        p.setBorder(new EmptyBorder(30, 30, 20, 30));
+
+        // Warning icon drawn with graphics
+        JPanel iconPanel = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int cx = getWidth() / 2, cy = getHeight() / 2;
+                int r = 22;
+                g2.setColor(new Color(240, 80, 80));
+                g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 28));
+                FontMetrics fm = g2.getFontMetrics();
+                String excl = "!";
+                g2.drawString(excl, cx - fm.stringWidth(excl) / 2, cy + fm.getAscent() / 2 - 2);
+                g2.dispose();
+            }
+        };
+        iconPanel.setOpaque(false);
+        iconPanel.setPreferredSize(new Dimension(0, 56));
+        iconPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 56));
+        iconPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel msgLbl = new JLabel("Delete \"" + medicine.getMedName() + "\"?");
+        msgLbl.setFont(new Font("SansSerif", Font.BOLD, 18));
+        msgLbl.setForeground(TEXT_PRIMARY);
+        msgLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel subMsgLbl = new JLabel("This action cannot be undone.");
+        subMsgLbl.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        subMsgLbl.setForeground(TEXT_SECONDARY);
+        subMsgLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        p.add(iconPanel);
+        p.add(Box.createVerticalStrut(14));
+        p.add(msgLbl);
+        p.add(Box.createVerticalStrut(6));
+        p.add(subMsgLbl);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
+        btnPanel.setBackground(new Color(250, 250, 250));
+        btnPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(230, 230, 230)));
+
+        JButton noBtn = createOutlineButton("Cancel");
+        noBtn.addActionListener(e -> d.dispose());
+
+        JButton yesBtn = new JButton("Delete") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isArmed() ? new Color(200, 50, 50) : getModel().isRollover() ? new Color(220, 60, 60) : new Color(240, 80, 80));
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 22, 22);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        yesBtn.setFont(FONT_LABEL);
+        yesBtn.setForeground(Color.WHITE);
+        yesBtn.setContentAreaFilled(false);
+        yesBtn.setBorderPainted(false);
+        yesBtn.setFocusPainted(false);
+        yesBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        yesBtn.setBorder(new EmptyBorder(8, 22, 8, 22));
+
+        yesBtn.addActionListener(e -> {
+            boolean success = controller.deleteMedicine(medicine.getMedId());
+            if (success) {
+                d.dispose();
+                dispose();
+                parent.loadTableData();
+            } else {
+                ThemedDialog.showMessage(d, "Failed to delete medicine.", ThemedDialog.Kind.ERROR);
+            }
+        });
+
+        btnPanel.add(noBtn);
+        btnPanel.add(yesBtn);
+
+        d.add(p, BorderLayout.CENTER);
+        d.add(btnPanel, BorderLayout.SOUTH);
+        d.setVisible(true);
+    }
+
+    // ── Form builder helpers ──────────────────────────────────────────────────
+
+    private JTextField addFormRow(JPanel parent, String label, String placeholder) {
+        parent.add(styledLabel(label));
+        parent.add(Box.createVerticalStrut(4));
+        StyledFormField field = new StyledFormField(placeholder);
+        parent.add(field);
+        parent.add(Box.createVerticalStrut(12));
+        return field;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> JComboBox<T> addComboRow(JPanel parent, String label) {
+        parent.add(styledLabel(label));
+        parent.add(Box.createVerticalStrut(4));
+        JComboBox<T> combo = new JComboBox<>();
+        combo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        combo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        parent.add(combo);
+        parent.add(Box.createVerticalStrut(12));
+        return combo;
+    }
+
+    private JLabel styledLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(FONT_LABEL);
+        lbl.setForeground(TEXT_PRIMARY);
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return lbl;
+    }
+
+    private void styleAllCombos() {
+        for (JComboBox<?> combo : new JComboBox[]{presTypeCombo, categoryCombo, brandCombo, supplierCombo}) {
+            combo.setFont(FONT_BODY);
+            combo.setBackground(new Color(242, 242, 242));
+            combo.setForeground(TEXT_PRIMARY);
+        }
+    }
+
+    // ── Accent / Outline buttons ──────────────────────────────────────────────
+
+    private JButton createAccentButton(String text) {
+        JButton btn = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color bg = getModel().isArmed() ? ACCENT_DARK
+                         : getModel().isRollover() ? ACCENT_HOVER : ACCENT;
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 22, 22);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(FONT_LABEL);
+        btn.setForeground(Color.WHITE);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setOpaque(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(8, 22, 8, 22));
+        getRootPane().setDefaultButton(btn);
+        return btn;
+    }
+
+    private JButton createOutlineButton(String text) {
+        JButton btn = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color bg = getModel().isArmed() ? new Color(230, 230, 230)
+                         : getModel().isRollover() ? new Color(242, 242, 242) : BG_WHITE;
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 22, 22);
+                g2.setColor(new Color(200, 200, 200));
+                g2.drawRoundRect(0, 0, getWidth() - 2, getHeight() - 2, 22, 22);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(FONT_BODY);
+        btn.setForeground(TEXT_SECONDARY);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setOpaque(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(8, 18, 8, 18));
+        return btn;
+    }
+
+    // ── Combo setup ───────────────────────────────────────────────────────────
+
+    private void setupCategoryCombo() {
+        categoryCombo.removeAllItems();
+        for (MedicineCategory cat : controller.getAllCategories()) categoryCombo.addItem(cat);
+        categoryCombo.addItem(new MedicineCategory(-1, "--- Add New Category ---", ""));
+        categoryCombo.addActionListener(e -> {
+            MedicineCategory sel = (MedicineCategory) categoryCombo.getSelectedItem();
+            if (sel != null && sel.getCatId() == -1) {
+                String nm = ThemedDialog.showInput(this, "Enter new Category Name:");
+                if (nm != null && !nm.trim().isEmpty()) {
+                    MedicineCategory nc = new MedicineCategory(0, nm.trim(), "");
+                    if (controller.addCategory(nc)) { setupCategoryCombo(); selectById(categoryCombo, nc.getCatId()); }
+                    else { ThemedDialog.showMessage(this, "Failed to add category.", ThemedDialog.Kind.ERROR); categoryCombo.setSelectedIndex(0); }
+                } else categoryCombo.setSelectedIndex(0);
+            }
+        });
+    }
+
+    private void setupBrandCombo() {
+        brandCombo.removeAllItems();
+        for (Brand b : controller.getAllBrands()) brandCombo.addItem(b);
+        brandCombo.addItem(new Brand(-1, "--- Add New Brand ---"));
+        brandCombo.addActionListener(e -> {
+            Brand sel = (Brand) brandCombo.getSelectedItem();
+            if (sel != null && sel.getBrandId() == -1) {
+                String nm = ThemedDialog.showInput(this, "Enter new Brand Name:");
+                if (nm != null && !nm.trim().isEmpty()) {
+                    Brand nb = new Brand(0, nm.trim());
+                    if (controller.addBrand(nb)) { setupBrandCombo(); selectById(brandCombo, nb.getBrandId()); }
+                    else { ThemedDialog.showMessage(this, "Failed to add brand.", ThemedDialog.Kind.ERROR); brandCombo.setSelectedIndex(0); }
+                } else brandCombo.setSelectedIndex(0);
+            }
+        });
+    }
+
+    private void setupSupplierCombo() {
+        supplierCombo.removeAllItems();
+        for (Supplier s : controller.getAllSuppliers()) supplierCombo.addItem(s);
+        supplierCombo.addItem(new Supplier(-1, "--- Add New Supplier ---", ""));
+        supplierCombo.addActionListener(e -> {
+            Supplier sel = (Supplier) supplierCombo.getSelectedItem();
+            if (sel != null && sel.getSupplierId() == -1) {
+                String nm = ThemedDialog.showInput(this, "Enter new Supplier Name:");
+                if (nm != null && !nm.trim().isEmpty()) {
+                    Supplier ns = new Supplier(0, nm.trim(), "");
+                    if (controller.addSupplier(ns)) { setupSupplierCombo(); selectById(supplierCombo, ns.getSupplierId()); }
+                    else { ThemedDialog.showMessage(this, "Failed to add supplier.", ThemedDialog.Kind.ERROR); supplierCombo.setSelectedIndex(0); }
+                } else supplierCombo.setSelectedIndex(0);
+            }
+        });
+    }
+
+    private void setupPresTypeCombo() {
+        presTypeCombo.removeAllItems();
+        for (PresType p : controller.getAllPresTypes()) presTypeCombo.addItem(p);
+        presTypeCombo.addItem(new PresType(-1, "--- Add New Pres Type ---", 0));
+        presTypeCombo.addActionListener(e -> {
+            PresType sel = (PresType) presTypeCombo.getSelectedItem();
+            if (sel != null && sel.getPresId() == -1) {
+                String nm = ThemedDialog.showInput(this, "Enter new Prescription Type:");
+                if (nm != null && !nm.trim().isEmpty()) {
+                    PresType np = new PresType(0, nm.trim(), 0);
+                    if (controller.addPresType(np)) { setupPresTypeCombo(); selectById(presTypeCombo, np.getPresId()); }
+                    else { ThemedDialog.showMessage(this, "Failed to add prescription type.", ThemedDialog.Kind.ERROR); presTypeCombo.setSelectedIndex(0); }
+                } else presTypeCombo.setSelectedIndex(0);
+            }
+        });
+    }
+
+    private void selectById(JComboBox<?> combo, int id) {
+        for (int i = 0; i < combo.getItemCount(); i++) {
+            Object obj = combo.getItemAt(i);
+            if (obj instanceof MedicineCategory  && ((MedicineCategory)obj).getCatId()   == id) { combo.setSelectedIndex(i); return; }
+            if (obj instanceof Brand             && ((Brand)obj).getBrandId()             == id) { combo.setSelectedIndex(i); return; }
+            if (obj instanceof Supplier          && ((Supplier)obj).getSupplierId()       == id) { combo.setSelectedIndex(i); return; }
+            if (obj instanceof PresType          && ((PresType)obj).getPresId()           == id) { combo.setSelectedIndex(i); return; }
+        }
+    }
+
+    // ── Populate / Save ───────────────────────────────────────────────────────
+
+    private void populateFields() {
+        nameField.setText(medicine.getMedName());
+        quantityField.setText(String.valueOf(medicine.getQuantity()));
+        expDateField.setText(medicine.getExpirationDate() != null ? medicine.getExpirationDate().toString() : "");
+        descField.setText(medicine.getDescription());
+        costField.setText(String.valueOf(medicine.getCost()));
+        doseField.setText(medicine.getDose() != null ? medicine.getDose() : "");
+        prodDateField.setText(medicine.getProductionDate() != null ? medicine.getProductionDate().toString() : "");
+        priceField.setText(String.valueOf(medicine.getPrice()));
+        selectById(categoryCombo,  medicine.getCatId());
+        selectById(brandCombo,     medicine.getBrandId());
+        selectById(supplierCombo,  medicine.getSupplierId());
+        selectById(presTypeCombo,  medicine.getPresId());
+    }
+
+    private void saveMedicine() {
+        try {
+            String name = nameField.getText().trim();
+            if (name.isEmpty()) { ThemedDialog.showMessage(this, "Medicine name is required.", ThemedDialog.Kind.ERROR); return; }
+
+            int quantity    = Integer.parseInt(quantityField.getText().trim());
+            LocalDate exp   = expDateField.getText().trim().isEmpty() ? null : LocalDate.parse(expDateField.getText().trim());
+            LocalDate prod  = prodDateField.getText().trim().isEmpty() ? null : LocalDate.parse(prodDateField.getText().trim());
+            double price    = Double.parseDouble(priceField.getText().trim());
+            double cost     = costField.getText().trim().isEmpty() ? 0 : Double.parseDouble(costField.getText().trim());
+            String dose     = doseField.getText().trim();
+            String desc     = descField.getText().trim();
+
+            PresType     selPres = (PresType)     presTypeCombo.getSelectedItem();
+            MedicineCategory selCat  = (MedicineCategory) categoryCombo.getSelectedItem();
+            Brand        selBrand = (Brand)        brandCombo.getSelectedItem();
+            Supplier     selSupp  = (Supplier)     supplierCombo.getSelectedItem();
+
+            int presId   = (selPres  != null && selPres.getPresId()       != -1) ? selPres.getPresId()       : 0;
+            int catId    = (selCat   != null && selCat.getCatId()         != -1) ? selCat.getCatId()         : 0;
+            int brandId  = (selBrand != null && selBrand.getBrandId()     != -1) ? selBrand.getBrandId()     : 0;
+            int suppId   = (selSupp  != null && selSupp.getSupplierId()   != -1) ? selSupp.getSupplierId()   : 0;
+
+            boolean success;
+            if (medicine == null) {
+                success = controller.addMedicine(new Medicine(0, name, quantity, exp, presId, desc, cost, dose, prod, price, catId, brandId, suppId));
+            } else {
+                medicine.setMedName(name); medicine.setQuantity(quantity); medicine.setExpirationDate(exp);
+                medicine.setPresId(presId); medicine.setDescription(desc); medicine.setCost(cost);
+                medicine.setDose(dose); medicine.setProductionDate(prod); medicine.setPrice(price);
+                medicine.setCatId(catId); medicine.setBrandId(brandId); medicine.setSupplierId(suppId);
+                success = controller.updateMedicine(medicine);
+            }
+
+            if (success) {
+                ThemedDialog.showMessage(this, "Medicine saved successfully.", ThemedDialog.Kind.SUCCESS);
+                parent.loadTableData();
+                dispose();
+            } else {
+                ThemedDialog.showMessage(this, "Failed to save medicine.", ThemedDialog.Kind.ERROR);
+            }
+        } catch (NumberFormatException ex) {
+            ThemedDialog.showMessage(this, "Invalid number format in a numeric field.", ThemedDialog.Kind.ERROR);
+        } catch (DateTimeParseException ex) {
+            ThemedDialog.showMessage(this, "Invalid date format. Use YYYY-MM-DD.", ThemedDialog.Kind.ERROR);
+        }
+    }
+
+    // ── Inner styled text field ───────────────────────────────────────────────
+
+    static class StyledFormField extends JTextField {
+        private final String placeholder;
+        StyledFormField(String placeholder) {
+            this.placeholder = placeholder;
+            setOpaque(false);
+            setBorder(new EmptyBorder(9, 14, 9, 14));
+            setFont(FONT_BODY);
+            setForeground(TEXT_PRIMARY);
+            setAlignmentX(Component.LEFT_ALIGNMENT);
+            setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        }
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(242, 242, 242));
+            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
+            g2.dispose();
+            super.paintComponent(g);
+            if (getText().isEmpty() && !hasFocus()) {
+                Graphics2D g3 = (Graphics2D) g.create();
+                g3.setColor(new Color(160, 160, 160));
+                g3.setFont(getFont());
+                FontMetrics fm = g3.getFontMetrics();
+                g3.drawString(placeholder, 14, (getHeight() - fm.getHeight()) / 2 + fm.getAscent());
+                g3.dispose();
+            }
+        }
+    }
+}
