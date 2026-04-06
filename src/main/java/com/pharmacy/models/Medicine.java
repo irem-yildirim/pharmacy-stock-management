@@ -15,7 +15,47 @@ public class Medicine {
     private int presId;
     private LocalDate expirationDate;
 
-    public Medicine() {
+    public Medicine() {}
+
+    private Medicine(Builder builder) {
+        this.medId = builder.medId;
+        this.medName = builder.medName;
+        this.dose = builder.dose;
+        this.cost = builder.cost;
+        this.price = builder.price;
+        this.quantity = builder.quantity;
+        this.catId = builder.catId;
+        this.brandId = builder.brandId;
+        this.supplierId = builder.supplierId;
+        this.presId = builder.presId;
+        this.expirationDate = builder.expirationDate;
+    }
+
+    public static class Builder {
+        private int medId;
+        private String medName;
+        private String dose;
+        private double cost;
+        private double price;
+        private int quantity;
+        private int catId;
+        private int brandId;
+        private int supplierId;
+        private int presId;
+        private LocalDate expirationDate;
+
+        public Builder medId(int id) { this.medId = id; return this; }
+        public Builder medName(String name) { this.medName = name; return this; }
+        public Builder dose(String dose) { this.dose = dose; return this; }
+        public Builder cost(double cost) { this.cost = cost; return this; }
+        public Builder price(double price) { this.price = price; return this; }
+        public Builder quantity(int qty) { this.quantity = qty; return this; }
+        public Builder catId(int id) { this.catId = id; return this; }
+        public Builder brandId(int id) { this.brandId = id; return this; }
+        public Builder presId(int id) { this.presId = id; return this; }
+        public Builder expirationDate(LocalDate date) { this.expirationDate = date; return this; }
+
+        public Medicine build() { return new Medicine(this); }
     }
 
     public int getMedId() {
