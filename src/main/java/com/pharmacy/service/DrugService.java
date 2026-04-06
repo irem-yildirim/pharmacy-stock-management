@@ -2,7 +2,6 @@ package com.pharmacy.service;
 
 import com.pharmacy.dao.DrugDAO;
 import com.pharmacy.entity.Drug;
-import com.pharmacy.pattern.AppLogger;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -10,14 +9,13 @@ import java.util.stream.Collectors;
 public class DrugService {
 
     private final DrugDAO drugDAO;
-    private final AppLogger logger = AppLogger.getInstance();
 
     public DrugService(DrugDAO drugDAO) {
         this.drugDAO = drugDAO;
     }
 
     public Drug addDrug(Drug drug) {
-        logger.log("Adding drug: " + drug.getName() + " [" + drug.getBarcode() + "]");
+        System.out.println("[DrugService] Adding drug: " + drug.getName() + " [" + drug.getBarcode() + "]");
         if (drugDAO.findById(drug.getBarcode()) != null) {
             drugDAO.update(drug);
         } else {
@@ -27,28 +25,28 @@ public class DrugService {
     }
 
     public Drug updateDrug(Drug drug) {
-        logger.log("Updating drug: " + drug.getBarcode());
+        System.out.println("[DrugService] Updating drug: " + drug.getBarcode());
         drugDAO.update(drug);
         return drug;
     }
 
     public void deleteDrug(String barcode) {
-        logger.log("Deleting drug: " + barcode);
+        System.out.println("[DrugService] Deleting drug: " + barcode);
         drugDAO.delete(barcode);
     }
 
     public List<Drug> getAllDrugs() {
-        logger.log("Fetching all drugs");
+        System.out.println("[DrugService] Fetching all drugs");
         return drugDAO.findAll();
     }
 
     public Drug findByBarcode(String barcode) {
-        logger.log("Looking up drug by barcode: " + barcode);
+        System.out.println("[DrugService] Looking up drug by barcode: " + barcode);
         return drugDAO.findById(barcode);
     }
 
     public List<Drug> searchByName(String name) {
-        logger.log("Searching drugs by name: " + name);
+        System.out.println("[DrugService] Searching drugs by name: " + name);
         String lowerName = name.toLowerCase();
         return drugDAO.findAll().stream()
                 .filter(d -> d.getName() != null && d.getName().toLowerCase().contains(lowerName))
@@ -56,7 +54,7 @@ public class DrugService {
     }
 
     public List<Drug> findByCategory(Long categoryId) {
-        logger.log("Fetching drugs for category ID: " + categoryId);
+        System.out.println("[DrugService] Fetching drugs for category ID: " + categoryId);
         return drugDAO.findAll().stream()
                 .filter(d -> d.getCategory() != null && categoryId.equals(d.getCategory().getId()))
                 .collect(Collectors.toList());

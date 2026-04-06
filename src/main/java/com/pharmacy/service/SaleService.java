@@ -6,9 +6,6 @@ import com.pharmacy.dao.SaleItemDAO;
 import com.pharmacy.entity.Drug;
 import com.pharmacy.entity.Sale;
 import com.pharmacy.entity.SaleItem;
-import com.pharmacy.pattern.AppLogger;
-import com.pharmacy.pattern.TransactionFactory;
-
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -17,7 +14,6 @@ public class SaleService {
     private final SaleDAO saleDAO;
     private final SaleItemDAO saleItemDAO;
     private final DrugDAO drugDAO;
-    private final AppLogger logger = AppLogger.getInstance();
 
     public SaleService(SaleDAO saleDAO, SaleItemDAO saleItemDAO, DrugDAO drugDAO) {
         this.saleDAO = saleDAO;
@@ -26,7 +22,7 @@ public class SaleService {
     }
 
     public Sale createSale(List<SaleItem> items) {
-        logger.log("Creating new sale with " + items.size() + " item(s)");
+        System.out.println("[Sale] Creating new sale with " + items.size() + " item(s)");
 
         BigDecimal total = BigDecimal.ZERO;
         for (SaleItem item : items) {
@@ -45,7 +41,9 @@ public class SaleService {
             }
         }
 
-        Sale sale = TransactionFactory.createSale(total);
+        Sale sale = new Sale();
+        sale.setTotalAmount(total);
+        sale.setSaleDate(java.time.LocalDate.now());
         saleDAO.save(sale);
 
         for (SaleItem item : items) {
@@ -53,17 +51,17 @@ public class SaleService {
             saleItemDAO.save(item);
         }
 
-        logger.log("Sale #" + sale.getId() + " created. Total: " + total);
+        System.out.println("[Sale] Sale #" + sale.getId() + " created. Total: " + total);
         return sale;
     }
 
     public List<Sale> getAllSales() {
-        logger.log("Fetching all sales");
+        System.out.println("[Sale] Fetching all sales");
         return saleDAO.findAll();
     }
 
     public Sale getSaleById(Long id) {
-        logger.log("Fetching sale #" + id);
+        System.out.println("[Sale] Fetching sale #" + id);
         Sale sale = saleDAO.findById(id);
         if (sale == null) {
             throw new IllegalArgumentException("Sale not found: " + id);
@@ -72,7 +70,7 @@ public class SaleService {
     }
 
     public List<SaleItem> getAllSaleItems() {
-        logger.log("Fetching full sale history (all SaleItems)");
+        System.out.println("[Sale] Fetching full sale history (all SaleItems)");
         return saleItemDAO.findAll();
     }
 

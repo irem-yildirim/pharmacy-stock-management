@@ -75,6 +75,7 @@ public class MedicineController {
     }
 
     public boolean addPresType(PresType p) {
+        presTypeDAO.save(p);
         return true;
     }
 
@@ -169,14 +170,13 @@ public class MedicineController {
     }
 
     private Drug convertToDrug(Medicine med) {
-        com.pharmacy.pattern.DrugBuilder builder = new com.pharmacy.pattern.DrugBuilder();
-        Drug d = builder.barcode(String.valueOf(med.getMedId()))
-                .name(med.getMedName())
-                .dose(med.getDose())
-                .costPrice(java.math.BigDecimal.valueOf(med.getCost()))
-                .sellingPrice(java.math.BigDecimal.valueOf(med.getPrice()))
-                .stockQuantity(med.getQuantity())
-                .build();
+        Drug d = new Drug();
+        d.setBarcode(String.valueOf(med.getMedId()));
+        d.setName(med.getMedName());
+        d.setDose(med.getDose());
+        d.setCostPrice(java.math.BigDecimal.valueOf(med.getCost()));
+        d.setSellingPrice(java.math.BigDecimal.valueOf(med.getPrice()));
+        d.setStockQuantity(med.getQuantity());
                 
         if (med.getCatId() > 0) {
             Category c = new Category();

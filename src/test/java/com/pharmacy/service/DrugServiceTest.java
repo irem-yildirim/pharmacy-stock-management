@@ -2,7 +2,6 @@ package com.pharmacy.service;
 
 import com.pharmacy.dao.DrugDAO;
 import com.pharmacy.entity.Drug;
-import com.pharmacy.pattern.DrugBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,13 +39,12 @@ public class DrugServiceTest {
 
     @Test
     void testAddDrug_ShouldNotThrowExceptions() {
-        Drug drug = new DrugBuilder()
-                .barcode("TEST12345")
-                .name("Aspirin Test")
-                .costPrice(new BigDecimal("10.0"))
-                .sellingPrice(new BigDecimal("15.0"))
-                .stockQuantity(100)
-                .build();
+        Drug drug = new Drug();
+        drug.setBarcode("TEST12345");
+        drug.setName("Aspirin Test");
+        drug.setCostPrice(new BigDecimal("10.0"));
+        drug.setSellingPrice(new BigDecimal("15.0"));
+        drug.setStockQuantity(100);
 
         // Ensure business layer allows save properly
         assertDoesNotThrow(() -> drugService.addDrug(drug),
