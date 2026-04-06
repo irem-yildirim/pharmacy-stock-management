@@ -6,6 +6,8 @@ import com.pharmacy.entity.Expiry;
 import com.pharmacy.service.DrugService;
 import com.pharmacy.service.CategoryService;
 import com.pharmacy.dao.ExpiryDAO;
+import com.pharmacy.dao.BrandDAO;
+import com.pharmacy.dao.PresTypeDAO;
 import com.pharmacy.models.*;
 
 import java.util.ArrayList;
@@ -21,33 +23,32 @@ public class MedicineController {
     private final DrugService drugService;
     private final CategoryService categoryService;
     private final ExpiryDAO expiryDAO;
+    private final com.pharmacy.service.SaleService saleService;
+    private final com.pharmacy.service.PurchaseService purchaseService;
+    
+    private final BrandDAO brandDAO;
+    private final PresTypeDAO presTypeDAO;
 
-    public MedicineController(DrugService drugService, CategoryService categoryService, ExpiryDAO expiryDAO) {
+    public MedicineController(DrugService drugService, CategoryService categoryService, ExpiryDAO expiryDAO, com.pharmacy.service.SaleService saleService, com.pharmacy.service.PurchaseService purchaseService, BrandDAO brandDAO, PresTypeDAO presTypeDAO) {
         this.drugService = drugService;
         this.categoryService = categoryService;
         this.expiryDAO = expiryDAO;
+        this.saleService = saleService;
+        this.purchaseService = purchaseService;
+        this.brandDAO = brandDAO;
+        this.presTypeDAO = presTypeDAO;
     }
 
     // =========================================================================
-    // DUMMY MODELLER (DB'de olmayan Brand/Supplier/PresType için)
+    // GERÇEK VERİTABANI: BRAND, PRES_TYPE (DAO üzerinden)
     // =========================================================================
 
     public List<Brand> getAllBrands() {
-        List<Brand> dummyBrands = new ArrayList<>();
-        dummyBrands.add(new Brand(1, "Bilinmiyor"));
-        return dummyBrands;
-    }
-
-    public List<Supplier> getAllSuppliers() {
-        List<Supplier> dummySuppliers = new ArrayList<>();
-        dummySuppliers.add(new Supplier(1, "Bilinmiyor", "000-0000"));
-        return dummySuppliers;
+        return brandDAO.findAll();
     }
 
     public List<PresType> getAllPresTypes() {
-        List<PresType> dummyPresTypes = new ArrayList<>();
-        dummyPresTypes.add(new PresType(1, "Genel Reçetesiz", 0));
-        return dummyPresTypes;
+        return presTypeDAO.findAll();
     }
 
     // =========================================================================
@@ -69,10 +70,7 @@ public class MedicineController {
     }
 
     public boolean addBrand(Brand b) {
-        return true;
-    }
-
-    public boolean addSupplier(Supplier s) {
+        brandDAO.save(b);
         return true;
     }
 
@@ -90,9 +88,26 @@ public class MedicineController {
     }
 
     public List<Medicine> searchMedicines(String keyword) {
+        final String kw = keyword.toLowerCase().trim();
         return drugService.getAllDrugs().stream()
-                .filter(d -> d.getName().toLowerCase().contains(keyword.toLowerCase()))
+                .filter(d -> d.getName().toLowerCase().contains(kw) || 
+                             String.valueOf(d.getBarcode()).contains(kw) ||
+                             (d.getBrand() != null && d.getBrand().getBrandName().toLowerCase().contains(kw)) ||
+                             (d.getCategory() != null && d.getCategory().getName().toLowerCase().contains(kw))
+                       )
                 .map(this::convertToMedicine).collect(Collectors.toList());
+    }
+
+    public List<Medicine> getMedicinesByBrand(long brandId) {
+        return getAllMedicines().stream()
+                .filter(m -> m.getBrandId() == brandId)
+                .collect(Collectors.toList());
+    }
+
+    public List<Medicine> getMedicinesByCategory(int catId) {
+        return getAllMedicines().stream()
+                .filter(m -> m.getCatId() == catId)
+                .collect(Collectors.toList());
     }
 
     public boolean addMedicine(Medicine med) {
@@ -127,33 +142,93 @@ public class MedicineController {
         uiMed.setPrice(drug.getSellingPrice().doubleValue());
         uiMed.setQuantity(drug.getStockQuantity());
 
-        if (drug.getCategory() != null)
+        if (drug.getCategory() != null) {
             uiMed.setCatId(drug.getCategory().getId().intValue());
+        }
 
-        // Expiry: look up from expiry table by drug barcode
         try {
             Expiry expiry = expiryDAO.findByDrugBarcode(drug.getBarcode());
             if (expiry != null && expiry.getExpirationDate() != null) {
                 uiMed.setExpirationDate(expiry.getExpirationDate());
             }
-        } catch (Exception e) {
-            // expiry lookup failed — leave null
+        } catch (Exception e) {}
+
+        if (drug.getBrand() != null) {
+            uiMed.setBrandId(drug.getBrand().getBrandId());
+        } else {
+            uiMed.setBrandId(0);
         }
 
-        uiMed.setBrandId(1);
-        uiMed.setSupplierId(1);
-        uiMed.setPresId(1);
+        if (drug.getPresType() != null) {
+            uiMed.setPresId(drug.getPresType().getPresId());
+        } else {
+            uiMed.setPresId(0);
+        }
+        
         return uiMed;
     }
 
     private Drug convertToDrug(Medicine med) {
         com.pharmacy.pattern.DrugBuilder builder = new com.pharmacy.pattern.DrugBuilder();
-        return builder.barcode(String.valueOf(med.getMedId()))
+        Drug d = builder.barcode(String.valueOf(med.getMedId()))
                 .name(med.getMedName())
                 .dose(med.getDose())
                 .costPrice(java.math.BigDecimal.valueOf(med.getCost()))
                 .sellingPrice(java.math.BigDecimal.valueOf(med.getPrice()))
                 .stockQuantity(med.getQuantity())
                 .build();
+                
+        if (med.getCatId() > 0) {
+            Category c = new Category();
+            c.setId((long)med.getCatId());
+            d.setCategory(c);
+        }
+        if (med.getBrandId() > 0) {
+            d.setBrand(new Brand((int)med.getBrandId(), null));
+        }
+        if (med.getPresId() > 0) {
+            d.setPresType(new PresType((int)med.getPresId(), null, 0));
+        }
+        
+        return d;
+    }
+
+    public boolean sellDrug(String barcode, int quantity) {
+        try {
+            Drug d = drugService.findByBarcode(barcode);
+            if (d == null) return false;
+            
+            if (d.getStockQuantity() < quantity) {
+                return false; // Insufficient stock
+            }
+
+            com.pharmacy.entity.SaleItem item = new com.pharmacy.entity.SaleItem();
+            item.setDrug(d);
+            item.setQuantity(quantity);
+            item.setUnitPrice(d.getSellingPrice());
+
+            List<com.pharmacy.entity.SaleItem> items = new ArrayList<>();
+            items.add(item);
+            
+            saleService.createSale(items);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // SATIN ALIM KÖPRÜSÜ
+    // =========================================================================
+
+    public boolean purchaseDrug(String barcode, int quantity) {
+        try {
+            purchaseService.addPurchase(barcode, quantity);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

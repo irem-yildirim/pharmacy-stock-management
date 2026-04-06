@@ -1,5 +1,8 @@
 package com.pharmacy.entity;
 
+import com.pharmacy.models.Brand;
+import com.pharmacy.models.PresType;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -15,6 +18,8 @@ public class Drug {
     private List<SaleItem> saleItems;
     private Expiry expiry;
     private Category category;
+    private Brand brand;
+    private PresType presType;
 
     public Drug() {}
 
@@ -49,6 +54,12 @@ public class Drug {
     public void setExpiry(Expiry expiry) { this.expiry = expiry; }
     public Category getCategory() { return category; }
     public void setCategory(Category category) { this.category = category; }
+
+    public Brand getBrand() { return brand; }
+    public void setBrand(Brand brand) { this.brand = brand; }
+    
+    public PresType getPresType() { return presType; }
+    public void setPresType(PresType presType) { this.presType = presType; }
 
     @Override
     public String toString() {

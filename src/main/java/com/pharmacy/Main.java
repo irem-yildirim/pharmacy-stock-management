@@ -9,6 +9,7 @@ import com.pharmacy.dao.ExpiryDAO;
 import com.pharmacy.service.UserService;
 import com.pharmacy.service.DrugService;
 import com.pharmacy.service.CategoryService;
+import com.pharmacy.service.SaleService;
 import com.pharmacy.controllers.MedicineController;
 import com.pharmacy.controllers.LoginController;
 import com.pharmacy.views.LoginView;
@@ -34,6 +35,9 @@ public class Main {
                 DrugDAO drugDAO = new DrugDAO();
                 CategoryDAO categoryDAO = new CategoryDAO();
                 ExpiryDAO expiryDAO = new ExpiryDAO();
+                com.pharmacy.dao.SaleDAO saleDAO = new com.pharmacy.dao.SaleDAO();
+                com.pharmacy.dao.SaleItemDAO saleItemDAO = new com.pharmacy.dao.SaleItemDAO();
+                com.pharmacy.dao.PurchaseDAO purchaseDAO = new com.pharmacy.dao.PurchaseDAO();
 
                 // Verify seed worked
                 int userCount = userDAO.findAll().size();
@@ -46,9 +50,11 @@ public class Main {
                 UserService userService = new UserService(userDAO);
                 DrugService drugService = new DrugService(drugDAO);
                 CategoryService categoryService = new CategoryService(categoryDAO);
+                SaleService saleService = new SaleService(saleDAO, saleItemDAO, drugDAO);
+                com.pharmacy.service.PurchaseService purchaseService = new com.pharmacy.service.PurchaseService(purchaseDAO, drugDAO);
 
                 // 4. Controller Katmanı (MVC Köprüsü)
-                MedicineController medicineController = new MedicineController(drugService, categoryService, expiryDAO);
+                MedicineController medicineController = new MedicineController(drugService, categoryService, expiryDAO, saleService, purchaseService, new com.pharmacy.dao.BrandDAO(), new com.pharmacy.dao.PresTypeDAO());
                 LoginController loginController = new LoginController(userService, medicineController);
 
                 // 5. View Katmanı (Dependency Injection ile başlatma)

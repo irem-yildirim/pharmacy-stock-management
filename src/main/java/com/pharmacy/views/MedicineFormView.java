@@ -21,6 +21,7 @@ public class MedicineFormView extends JDialog {
 
     private JTextField nameField, doseField, costField, priceField, qtyField, barcodeField;
     private JComboBox<MedicineCategory> categoryCombo;
+    private JComboBox<Brand> brandCombo;
 
     public MedicineFormView(DashboardView parent, MedicineController controller, Medicine medicine) {
         super(parent, medicine == null ? "Add Medicine" : "Edit Medicine", true);
@@ -64,8 +65,33 @@ public class MedicineFormView extends JDialog {
         nameField = addField(form, "Medicine Name");
         doseField = addField(form, "Dose");
         costField = addField(form, "Cost Price");
-        priceField = addField(form, "Selling Price");
-        qtyField = addField(form, "Quantity");
+        
+        if (medicine != null) {
+            // Quick Update Box for Price & Stock
+            JPanel quickPanel = new JPanel();
+            quickPanel.setLayout(new BoxLayout(quickPanel, BoxLayout.Y_AXIS));
+            quickPanel.setBackground(BG_CARD);
+            quickPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ACCENT, 1, true),
+                new EmptyBorder(12, 16, 4, 16)
+            ));
+            quickPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            
+            JLabel quickLabel = new JLabel("⚡ Quick Update");
+            quickLabel.setFont(FONT_HEADER);
+            quickLabel.setForeground(ACCENT_DARK);
+            quickPanel.add(quickLabel);
+            quickPanel.add(Box.createVerticalStrut(10));
+            
+            priceField = addField(quickPanel, "Selling Price");
+            qtyField = addField(quickPanel, "Quantity");
+            
+            form.add(quickPanel);
+            form.add(Box.createVerticalStrut(12));
+        } else {
+            priceField = addField(form, "Selling Price");
+            qtyField = addField(form, "Quantity");
+        }
 
         // Category combo
         JLabel catLabel = new JLabel("Category");
@@ -85,6 +111,35 @@ public class MedicineFormView extends JDialog {
         form.add(categoryCombo);
         form.add(Box.createVerticalStrut(12));
 
+        // Brand combo
+        JLabel brandLabel = new JLabel("Brand");
+        brandLabel.setFont(FONT_LABEL);
+        brandLabel.setForeground(TEXT_PRIMARY);
+        brandLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        form.add(brandLabel);
+        form.add(Box.createVerticalStrut(4));
+
+        brandCombo = new JComboBox<>();
+        List<Brand> brands = controller.getAllBrands();
+        for (Brand b : brands) {
+            brandCombo.addItem(b);
+        }
+        brandCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Brand) {
+                    setText(((Brand) value).getBrandName());
+                }
+                return this;
+            }
+        });
+        brandCombo.setFont(FONT_BODY);
+        brandCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        brandCombo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        form.add(brandCombo);
+        form.add(Box.createVerticalStrut(12));
+
         // Populate if editing
         if (medicine != null) {
             barcodeField.setText(String.valueOf(medicine.getMedId()));
@@ -101,11 +156,19 @@ public class MedicineFormView extends JDialog {
                     break;
                 }
             }
+
+            for (int i = 0; i < brandCombo.getItemCount(); i++) {
+                if (brandCombo.getItemAt(i).getBrandId() == medicine.getBrandId()) {
+                    brandCombo.setSelectedIndex(i);
+                    break;
+                }
+            }
         }
 
         JScrollPane scroll = new JScrollPane(form);
         scroll.setBorder(null);
         scroll.getViewport().setBackground(BG_WHITE);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
         return scroll;
     }
 
@@ -185,9 +248,11 @@ public class MedicineFormView extends JDialog {
             if (selectedCat != null)
                 med.setCatId(selectedCat.getCatId());
 
-            med.setBrandId(1);
-            med.setSupplierId(1);
-            med.setPresId(1);
+            Brand selectedBrand = (Brand) brandCombo.getSelectedItem();
+            if (selectedBrand != null)
+                med.setBrandId(selectedBrand.getBrandId());
+
+            med.setPresId(1); // Defaulting presId unless explicitly requested to be a combo too
 
             boolean success;
             if (medicine == null) {

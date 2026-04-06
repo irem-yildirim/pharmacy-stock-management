@@ -1,7 +1,7 @@
 package com.pharmacy.dao;
 
 import com.pharmacy.entity.*;
-import com.pharmacy.pattern.DrugBuilder;
+
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -21,6 +21,8 @@ public class DatabaseSeeder {
             createTablesIfNotExist();
             seedUsers();
             seedCategories();
+            seedBrands();
+            seedPresTypes();
             seedDrugs();
             seedExpiry();
             seedPurchases();
@@ -30,6 +32,20 @@ public class DatabaseSeeder {
             System.err.println("[Seeder] ERROR: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    public static void main(String[] args) {
+        DatabaseSeeder seeder = new DatabaseSeeder();
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             Statement stmt = conn.createStatement()) {
+            System.out.println("Cleaning database for fresh seed...");
+            stmt.executeUpdate("DELETE FROM expiry");
+            stmt.executeUpdate("DELETE FROM purchase");
+            stmt.executeUpdate("DELETE FROM sale_item");
+            stmt.executeUpdate("DELETE FROM sale");
+            stmt.executeUpdate("DELETE FROM drug");
+        } catch (Exception e) {}
+        seeder.seedIfEmpty();
     }
 
     // =========================================================================
@@ -54,21 +70,40 @@ public class DatabaseSeeder {
             stmt.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS category (
                     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(100),
-                    description VARCHAR(255)
+                    name VARCHAR(100) UNIQUE NOT NULL,
+                    description VARCHAR(500)
+                )
+            """);
+
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS brand (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) UNIQUE NOT NULL
+                )
+            """);
+
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS pres_type (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    level INT DEFAULT 0
                 )
             """);
 
             stmt.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS drug (
                     barcode VARCHAR(50) PRIMARY KEY,
-                    name VARCHAR(100),
+                    name VARCHAR(150) NOT NULL,
                     dose VARCHAR(50),
-                    cost_price DECIMAL(10,2),
-                    selling_price DECIMAL(10,2),
-                    stock_quantity INT DEFAULT 0,
+                    cost_price DECIMAL(10,2) NOT NULL,
+                    selling_price DECIMAL(10,2) NOT NULL,
+                    stock_quantity INT NOT NULL,
                     category_id BIGINT,
-                    FOREIGN KEY (category_id) REFERENCES category(id)
+                    brand_id BIGINT,
+                    pres_id BIGINT,
+                    FOREIGN KEY (category_id) REFERENCES category(id),
+                    FOREIGN KEY (brand_id) REFERENCES brand(id),
+                    FOREIGN KEY (pres_id) REFERENCES pres_type(id)
                 )
             """);
 
@@ -150,6 +185,28 @@ public class DatabaseSeeder {
     }
 
     // =========================================================================
+    //  BRANDS / SUPPLIERS / PRES_TYPES
+    // =========================================================================
+    private void seedBrands() {
+        if (!isTableEmpty("brand")) return;
+        System.out.println("  → Seeding brands...");
+        BrandDAO dao = new BrandDAO();
+        dao.save(new com.pharmacy.models.Brand(0, "Pfizer Labs"));
+        dao.save(new com.pharmacy.models.Brand(0, "Bayer Pharma"));
+        dao.save(new com.pharmacy.models.Brand(0, "Novartis"));
+        dao.save(new com.pharmacy.models.Brand(0, "Roche"));
+        dao.save(new com.pharmacy.models.Brand(0, "Generic / Local"));
+    }
+
+    private void seedPresTypes() {
+        if (!isTableEmpty("pres_type")) return;
+        System.out.println("  → Seeding prescription types...");
+        PresTypeDAO dao = new PresTypeDAO();
+        dao.save(new com.pharmacy.models.PresType(0, "Over the Counter (OTC)", 0));
+        dao.save(new com.pharmacy.models.PresType(0, "Strict Prescription Only", 1));
+    }
+
+    // =========================================================================
     //  DRUGS  (category_id: 1=Painkillers, 2=Antibiotics, 3=Vitamins,
     //          4=Digestive, 5=Dermatology, 6=Cold&Flu)
     // =========================================================================
@@ -158,21 +215,21 @@ public class DatabaseSeeder {
         System.out.println("  → Seeding drugs...");
 
         DrugDAO dao = new DrugDAO();
-        dao.save(drug("1001", "Paracetamol 500mg",   "500mg",   "3.50",  "6.99",   120, 1L));
-        dao.save(drug("1002", "Ibuprofen 400mg",     "400mg",   "4.00",  "8.50",    85, 1L));
-        dao.save(drug("1003", "Aspirin 100mg",       "100mg",   "2.50",  "5.25",    60, 1L));
-        dao.save(drug("1004", "Amoxicillin 500mg",   "500mg",  "12.00", "24.90",    30, 2L));
-        dao.save(drug("1005", "Azithromycin 250mg",  "250mg",  "15.00", "29.50",    45, 2L));
-        dao.save(drug("1006", "Ciprofloxacin 500mg", "500mg",  "10.00", "21.90",     7, 2L));
-        dao.save(drug("1007", "Vitamin C 1000mg",    "1000mg",  "5.00", "10.50",   200, 3L));
-        dao.save(drug("1008", "Vitamin D3 1000IU",   "1000IU",  "6.00", "12.90",   150, 3L));
-        dao.save(drug("1009", "Vitamin B12",         "1mg",     "8.00", "16.00",     4, 3L));
-        dao.save(drug("1010", "Omeprazole 20mg",     "20mg",   "14.00", "28.50",    40, 4L));
-        dao.save(drug("1011", "Antacid Tablets",     "500mg",   "3.00",  "7.25",    90, 4L));
-        dao.save(drug("1012", "Hydrocortisone Cream","1%",      "9.00", "18.75",    35, 5L));
-        dao.save(drug("1013", "Cetirizine 10mg",     "10mg",    "2.00",  "5.50",    70, 6L));
-        dao.save(drug("1014", "Pseudoephedrine 60mg","60mg",    "4.50",  "9.90",     3, 6L));
-        dao.save(drug("1015", "Throat Lozenges",     "1.2mg",   "3.00",  "6.75",   110, 6L));
+        dao.save(drug("1001", "Paracetamol 500mg",   "500mg",   "3.50",  "6.99",   120, 1L, 5, 1));
+        dao.save(drug("1002", "Ibuprofen 400mg",     "400mg",   "4.00",  "8.50",    85, 1L, 2, 1));
+        dao.save(drug("1003", "Aspirin 100mg",       "100mg",   "2.50",  "5.25",    60, 1L, 2, 1));
+        dao.save(drug("1004", "Amoxicillin 500mg",   "500mg",  "12.00", "24.90",    30, 2L, 1, 2));
+        dao.save(drug("1005", "Azithromycin 250mg",  "250mg",  "15.00", "29.50",    45, 2L, 1, 2));
+        dao.save(drug("1006", "Ciprofloxacin 500mg", "500mg",  "10.00", "21.90",     7, 2L, 2, 2));
+        dao.save(drug("1007", "Vitamin C 1000mg",    "1000mg",  "5.00", "10.50",   200, 3L, 5, 1));
+        dao.save(drug("1008", "Vitamin D3 1000IU",   "1000IU",  "6.00", "12.90",   150, 3L, 4, 1));
+        dao.save(drug("1009", "Vitamin B12",         "1mg",     "8.00", "16.00",     4, 3L, 4, 1));
+        dao.save(drug("1010", "Omeprazole 20mg",     "20mg",   "14.00", "28.50",    40, 4L, 3, 2));
+        dao.save(drug("1011", "Antacid Tablets",     "500mg",   "3.00",  "7.25",    90, 4L, 5, 1));
+        dao.save(drug("1012", "Hydrocortisone Cream","1%",      "9.00", "18.75",    35, 5L, 3, 2));
+        dao.save(drug("1013", "Cetirizine 10mg",     "10mg",    "2.00",  "5.50",    70, 6L, 1, 1));
+        dao.save(drug("1014", "Pseudoephedrine 60mg","60mg",    "4.50",  "9.90",     3, 6L, 2, 1));
+        dao.save(drug("1015", "Throat Lozenges",     "1.2mg",   "3.00",  "6.75",   110, 6L, 5, 1));
     }
 
     // =========================================================================
@@ -186,20 +243,20 @@ public class DatabaseSeeder {
         LocalDate today = LocalDate.now();
 
         expiry(dao, "1001", today.plusDays(365));    // OK
-        expiry(dao, "1002", today.plusDays(12));     // CRITICAL — 12 days
-        expiry(dao, "1003", today.plusDays(180));    // OK
-        expiry(dao, "1004", today.plusDays(20));     // CRITICAL — 20 days
-        expiry(dao, "1005", today.plusDays(90));     // OK
-        expiry(dao, "1006", today.minusDays(10));    // EXPIRED
+        expiry(dao, "1002", today.plusDays(90));     // Upcoming (3 months)
+        expiry(dao, "1003", today.plusDays(180));    // Upcoming (6 months)
+        expiry(dao, "1004", today.plusDays(120));    // Upcoming (4 months)
+        expiry(dao, "1005", today.plusDays(210));    // OK
+        expiry(dao, "1006", today.plusDays(150));    // Upcoming (5 months)
         expiry(dao, "1007", today.plusDays(540));    // OK
         expiry(dao, "1008", today.plusDays(420));    // OK
-        expiry(dao, "1009", today.plusDays(5));      // CRITICAL — 5 days
+        expiry(dao, "1009", today.plusDays(100));    // Upcoming
         expiry(dao, "1010", today.plusDays(270));    // OK
-        expiry(dao, "1011", today.plusDays(60));     // OK
-        expiry(dao, "1012", today.minusDays(3));     // EXPIRED
+        expiry(dao, "1011", today.plusDays(60));     // Upcoming
+        expiry(dao, "1012", today.plusDays(200));    // OK
         expiry(dao, "1013", today.plusDays(300));    // OK
-        expiry(dao, "1014", today.plusDays(25));     // CRITICAL — 25 days
-        expiry(dao, "1015", today.plusDays(150));    // OK
+        expiry(dao, "1014", today.plusDays(85));     // Upcoming
+        expiry(dao, "1015", today.plusDays(150));    // Upcoming
     }
 
     // =========================================================================
@@ -278,19 +335,17 @@ public class DatabaseSeeder {
         return false;
     }
 
-    private Drug drug(String barcode, String name, String dose,
-                      String cost, String sell, int qty, Long catId) {
-        Drug d = new DrugBuilder()
-                .barcode(barcode).name(name).dose(dose)
-                .costPrice(new BigDecimal(cost))
-                .sellingPrice(new BigDecimal(sell))
-                .stockQuantity(qty)
-                .build();
-        if (catId != null) {
-            Category cat = new Category();
-            cat.setId(catId);
-            d.setCategory(cat);
-        }
+    private Drug drug(String barcode, String name, String dose, String cost, String sell, int stock, Long catId, Integer brandId, Integer presId) {
+        Category cat = new Category();
+        cat.setId(catId);
+        
+        com.pharmacy.models.Brand brand = new com.pharmacy.models.Brand(brandId, null);
+        com.pharmacy.models.PresType pres = new com.pharmacy.models.PresType(presId, null, 0);
+
+        Drug d = new Drug(barcode, name, dose, new java.math.BigDecimal(cost), new java.math.BigDecimal(sell), stock);
+        d.setCategory(cat);
+        d.setBrand(brand);
+        d.setPresType(pres);
         return d;
     }
 

@@ -2,6 +2,8 @@ package com.pharmacy.dao;
 
 import com.pharmacy.entity.Drug;
 import com.pharmacy.entity.Category;
+import com.pharmacy.models.Brand;
+import com.pharmacy.models.PresType;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -11,7 +13,7 @@ public class DrugDAO implements BaseDAO<Drug, String> {
 
     @Override
     public void save(Drug drug) {
-        String query = "INSERT INTO drug (barcode, name, dose, cost_price, selling_price, stock_quantity, category_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String query = "INSERT INTO drug (barcode, name, dose, cost_price, selling_price, stock_quantity, category_id, brand_id, pres_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
@@ -28,6 +30,18 @@ public class DrugDAO implements BaseDAO<Drug, String> {
                 pstmt.setNull(7, Types.BIGINT);
             }
             
+            if (drug.getBrand() != null && drug.getBrand().getBrandId() != 0) {
+                pstmt.setLong(8, drug.getBrand().getBrandId());
+            } else {
+                pstmt.setNull(8, Types.BIGINT);
+            }
+
+            if (drug.getPresType() != null && drug.getPresType().getPresId() != 0) {
+                pstmt.setLong(9, drug.getPresType().getPresId());
+            } else {
+                pstmt.setNull(9, Types.BIGINT);
+            }
+            
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -36,7 +50,7 @@ public class DrugDAO implements BaseDAO<Drug, String> {
 
     @Override
     public void update(Drug drug) {
-        String query = "UPDATE drug SET name=?, dose=?, cost_price=?, selling_price=?, stock_quantity=?, category_id=? WHERE barcode=?";
+        String query = "UPDATE drug SET name=?, dose=?, cost_price=?, selling_price=?, stock_quantity=?, category_id=?, brand_id=?, pres_id=? WHERE barcode=?";
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
@@ -52,7 +66,19 @@ public class DrugDAO implements BaseDAO<Drug, String> {
                 pstmt.setNull(6, Types.BIGINT);
             }
             
-            pstmt.setString(7, drug.getBarcode());
+            if (drug.getBrand() != null && drug.getBrand().getBrandId() != 0) {
+                pstmt.setLong(7, drug.getBrand().getBrandId());
+            } else {
+                pstmt.setNull(7, Types.BIGINT);
+            }
+
+            if (drug.getPresType() != null && drug.getPresType().getPresId() != 0) {
+                pstmt.setLong(8, drug.getPresType().getPresId());
+            } else {
+                pstmt.setNull(8, Types.BIGINT);
+            }
+            
+            pstmt.setString(9, drug.getBarcode());
             
             pstmt.executeUpdate();
         } catch (SQLException e) {
@@ -75,9 +101,13 @@ public class DrugDAO implements BaseDAO<Drug, String> {
 
     @Override
     public Drug findById(String barcode) {
-        String query = "SELECT d.*, c.name AS category_name, c.description AS category_description " +
+        String query = "SELECT d.*, c.name AS category_name, c.description AS category_description, " +
+                       "b.name AS brand_name, " +
+                       "p.name AS pres_name, p.level AS pres_level " +
                        "FROM drug d " +
                        "LEFT JOIN category c ON d.category_id = c.id " +
+                       "LEFT JOIN brand b ON d.brand_id = b.id " +
+                       "LEFT JOIN pres_type p ON d.pres_id = p.id " +
                        "WHERE d.barcode = ?";
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -97,9 +127,13 @@ public class DrugDAO implements BaseDAO<Drug, String> {
     @Override
     public List<Drug> findAll() {
         List<Drug> drugs = new ArrayList<>();
-        String query = "SELECT d.*, c.name AS category_name, c.description AS category_description " +
+        String query = "SELECT d.*, c.name AS category_name, c.description AS category_description, " +
+                       "b.name AS brand_name, " +
+                       "p.name AS pres_name, p.level AS pres_level " +
                        "FROM drug d " +
-                       "LEFT JOIN category c ON d.category_id = c.id";
+                       "LEFT JOIN category c ON d.category_id = c.id " +
+                       "LEFT JOIN brand b ON d.brand_id = b.id " +
+                       "LEFT JOIN pres_type p ON d.pres_id = p.id";
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query);
              ResultSet rs = pstmt.executeQuery()) {
@@ -129,6 +163,16 @@ public class DrugDAO implements BaseDAO<Drug, String> {
             category.setName(rs.getString("category_name"));
             category.setDescription(rs.getString("category_description"));
             drug.setCategory(category);
+        }
+        
+        long brandId = rs.getLong("brand_id");
+        if (!rs.wasNull()) {
+            drug.setBrand(new Brand((int) brandId, rs.getString("brand_name")));
+        }
+        
+        long presId = rs.getLong("pres_id");
+        if (!rs.wasNull()) {
+            drug.setPresType(new PresType((int) presId, rs.getString("pres_name"), rs.getInt("pres_level")));
         }
         
         return drug;

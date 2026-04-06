@@ -161,6 +161,11 @@ public class LoginView extends JFrame {
                         boolean isSelected, boolean cellHasFocus) {
                     JLabel lbl = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected,
                             cellHasFocus);
+                    if (value instanceof User) {
+                        lbl.setText(((User) value).getName() + " (" + ((User) value).getRole() + ")");
+                    } else if (value != null) {
+                        lbl.setText(value.toString());
+                    }
                     lbl.setBorder(new EmptyBorder(6, 44, 6, 10));
                     lbl.setFont(new Font("SansSerif", Font.PLAIN, 14));
                     if (isSelected) {
