@@ -49,4 +49,19 @@ public class PurchaseService {
         all.removeIf(p -> p.getDrug() == null || !barcode.equals(p.getDrug().getBarcode()));
         return all;
     }
+
+    public java.math.BigDecimal calculateTotalPurchases() {
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        List<Purchase> purchases = getAllPurchases();
+        for (Purchase p : purchases) {
+            if (p.getDrug() != null && p.getDrug().getBarcode() != null) {
+                Drug drug = drugDAO.findById(p.getDrug().getBarcode());
+                if (drug != null && drug.getCostPrice() != null) {
+                    java.math.BigDecimal rowCost = drug.getCostPrice().multiply(java.math.BigDecimal.valueOf(p.getQuantityAdded()));
+                    total = total.add(rowCost);
+                }
+            }
+        }
+        return total;
+    }
 }

@@ -106,14 +106,12 @@ public class DatabaseSeeder {
                     FOREIGN KEY (pres_id) REFERENCES pres_type(id)
                 )
             """);
-
+            stmt.executeUpdate("DROP TABLE IF EXISTS expiry");
             stmt.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS expiry (
                     id BIGINT AUTO_INCREMENT PRIMARY KEY,
                     drug_barcode VARCHAR(50),
                     expiration_date DATE,
-                    days_remaining BIGINT,
-                    status VARCHAR(20),
                     FOREIGN KEY (drug_barcode) REFERENCES drug(barcode)
                 )
             """);
@@ -236,27 +234,35 @@ public class DatabaseSeeder {
     //  EXPIRY  — some EXPIRED, some CRITICAL (≤30 days), rest OK
     // =========================================================================
     private void seedExpiry() {
-        if (!isTableEmpty("expiry")) return;
-        System.out.println("  → Seeding expiry records...");
+        // Force clear to ensure clean test data for Red/Orange borders
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("DELETE FROM expiry");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
+        System.out.println("  → [Forced] Seeding expiry records...");
         ExpiryDAO dao = new ExpiryDAO();
         LocalDate today = LocalDate.now();
 
-        expiry(dao, "1001", today.plusDays(365));    // OK
-        expiry(dao, "1002", today.plusDays(90));     // Upcoming (3 months)
-        expiry(dao, "1003", today.plusDays(180));    // Upcoming (6 months)
-        expiry(dao, "1004", today.plusDays(120));    // Upcoming (4 months)
-        expiry(dao, "1005", today.plusDays(210));    // OK
-        expiry(dao, "1006", today.plusDays(150));    // Upcoming (5 months)
-        expiry(dao, "1007", today.plusDays(540));    // OK
-        expiry(dao, "1008", today.plusDays(420));    // OK
-        expiry(dao, "1009", today.plusDays(100));    // Upcoming
-        expiry(dao, "1010", today.plusDays(270));    // OK
-        expiry(dao, "1011", today.plusDays(60));     // Upcoming
-        expiry(dao, "1012", today.plusDays(200));    // OK
-        expiry(dao, "1013", today.plusDays(300));    // OK
-        expiry(dao, "1014", today.plusDays(85));     // Upcoming
-        expiry(dao, "1015", today.plusDays(150));    // Upcoming
+        // URGENT (< 15 days) -> RED BORDER
+        expiry(dao, "1001", today.plusDays(4));
+        expiry(dao, "1006", today.plusDays(10));
+        expiry(dao, "1014", today.plusDays(2));
+
+        // SOON (16-30 days) -> ORANGE BORDER
+        expiry(dao, "1002", today.plusDays(18));
+        expiry(dao, "1004", today.plusDays(25));
+
+        // SAFE (> 30 days) -> NO BORDER
+        expiry(dao, "1003", today.plusDays(90));
+        expiry(dao, "1005", today.plusDays(200));
+        expiry(dao, "1007", today.plusDays(365));
+        expiry(dao, "1008", today.plusDays(400));
+        expiry(dao, "1010", today.plusDays(500));
+        expiry(dao, "1012", today.plusDays(600));
+        expiry(dao, "1013", today.plusDays(700));
     }
 
     // =========================================================================
@@ -352,9 +358,8 @@ public class DatabaseSeeder {
     private void expiry(ExpiryDAO dao, String barcode, LocalDate expDate) {
         Drug d = new Drug();
         d.setBarcode(barcode);
-        long days = ChronoUnit.DAYS.between(LocalDate.now(), expDate);
-        String status = days <= 0 ? "EXPIRED" : days <= 30 ? "CRITICAL" : "OK";
-        dao.save(new Expiry(d, expDate, days, status));
+        // We no longer pass days/status as they are dynamic in the DAO
+        dao.save(new Expiry(d, expDate, 0, "OK"));
     }
 
     private void purchase(PurchaseDAO dao, String barcode, int qty, LocalDate date) {

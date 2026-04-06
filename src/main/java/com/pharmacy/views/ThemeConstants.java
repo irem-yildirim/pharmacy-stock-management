@@ -20,6 +20,10 @@ public class ThemeConstants {
     public static final Color ACCENT_DARK = new Color(230, 120, 30);
     public static final Color ACCENT_LIGHT = new Color(255, 237, 210);
 
+    // ── Status ────────────────────────────────────────────────────────────────
+    public static final Color SUCCESS = new Color(45, 175, 85);
+    public static final Color DANGER = new Color(225, 65, 65);
+
     // ── Sidebar ───────────────────────────────────────────────────────────────
     public static final Color SIDEBAR_BG = new Color(0x1B3A4B);
     public static final Color SIDEBAR_HOVER = new Color(0x254F65);

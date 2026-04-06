@@ -75,4 +75,18 @@ public class SaleService {
         logger.log("Fetching full sale history (all SaleItems)");
         return saleItemDAO.findAll();
     }
+
+    public BigDecimal calculateTotalSales() {
+        return getAllSales().stream()
+                .map(s -> s.getTotalAmount() != null ? s.getTotalAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal calculateTodaySales() {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        return getAllSales().stream()
+                .filter(s -> today.equals(s.getSaleDate()))
+                .map(s -> s.getTotalAmount() != null ? s.getTotalAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 }

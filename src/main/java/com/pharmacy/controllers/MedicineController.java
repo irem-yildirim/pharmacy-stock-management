@@ -231,4 +231,94 @@ public class MedicineController {
             return false;
         }
     }
+
+    // =========================================================================
+    // DTO & FINANCIAL REPORTING KÖPRÜSÜ
+    // =========================================================================
+
+    public static class FinancialTransaction {
+        public final String type; // "SALE" or "PURCHASE"
+        public final java.time.LocalDate date;
+        public final java.math.BigDecimal amount;
+        public final String reference; 
+        
+        public FinancialTransaction(String type, java.time.LocalDate date, java.math.BigDecimal amount, String reference) {
+            this.type = type;
+            this.date = date;
+            this.amount = amount;
+            this.reference = reference;
+        }
+    }
+
+    public static class FinancialSummary {
+        public final java.math.BigDecimal totalSales;
+        public final java.math.BigDecimal totalPurchases;
+        public final java.math.BigDecimal netProfit;
+        
+        // Quick Stats
+        public final java.math.BigDecimal todayRevenue;
+        public final int lowStockCount;
+        public final int expiryCount;
+        public final int totalInventory;
+
+        public FinancialSummary(java.math.BigDecimal totalSales, java.math.BigDecimal totalPurchases, 
+                                java.math.BigDecimal todayRevenue, int lowStockCount, int expiryCount, int totalInventory) {
+            this.totalSales = totalSales != null ? totalSales : java.math.BigDecimal.ZERO;
+            this.totalPurchases = totalPurchases != null ? totalPurchases : java.math.BigDecimal.ZERO;
+            this.netProfit = this.totalSales.subtract(this.totalPurchases);
+            this.todayRevenue = todayRevenue != null ? todayRevenue : java.math.BigDecimal.ZERO;
+            this.lowStockCount = lowStockCount;
+            this.expiryCount = expiryCount;
+            this.totalInventory = totalInventory;
+        }
+    }
+
+    public FinancialSummary getFinancialSummary() {
+        List<Medicine> all = getAllMedicines();
+        int totalInv = all.size();
+        int lowStock = (int) all.stream().filter(m -> m.getQuantity() < 10).count();
+        
+        java.time.LocalDate threshold30 = java.time.LocalDate.now().plusDays(30);
+        int expCount = (int) all.stream()
+                .filter(m -> m.getExpirationDate() != null && !m.getExpirationDate().isAfter(threshold30))
+                .count();
+
+        return new FinancialSummary(
+            saleService.calculateTotalSales(), 
+            purchaseService.calculateTotalPurchases(),
+            saleService.calculateTodaySales(),
+            lowStock,
+            expCount,
+            totalInv
+        );
+    }
+
+    public List<FinancialTransaction> getFinancialTransactions() {
+        List<FinancialTransaction> list = new java.util.ArrayList<>();
+        
+        for (com.pharmacy.entity.Sale s : saleService.getAllSales()) {
+            list.add(new FinancialTransaction("SALE", s.getSaleDate(), s.getTotalAmount(), "Sale ID #" + s.getId()));
+        }
+        
+        for (com.pharmacy.entity.Purchase p : purchaseService.getAllPurchases()) {
+            java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
+            if (p.getDrug() != null && p.getDrug().getBarcode() != null) {
+                Drug drug = drugService.getAllDrugs().stream()
+                        .filter(d -> p.getDrug().getBarcode().equals(d.getBarcode())).findFirst().orElse(null);
+                if (drug != null && drug.getCostPrice() != null) {
+                    amount = drug.getCostPrice().multiply(java.math.BigDecimal.valueOf(p.getQuantityAdded()));
+                }
+            }
+            list.add(new FinancialTransaction("PURCHASE", p.getPurchaseDate(), amount, "Purchase: " + (p.getDrug() != null ? p.getDrug().getBarcode() : "Unknown")));
+        }
+        
+        list.sort((a,b) -> {
+            if (a.date == null && b.date == null) return 0;
+            if (a.date == null) return 1;
+            if (b.date == null) return -1;
+            return b.date.compareTo(a.date);
+        });
+        
+        return list;
+    }
 }

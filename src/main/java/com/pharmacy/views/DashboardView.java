@@ -30,19 +30,20 @@ public class DashboardView extends JFrame {
     private static final String CARD_HOME = "home";
     private static final String CARD_MEDICINES = "medicines";
     private static final String CARD_BRANDS = "brands";
+    private static final String CARD_FINANCE = "finance";
 
     public DashboardView(MedicineController controller) {
         this.controller = controller;
         this.brandMap = new HashMap<>();
         this.presMap = new HashMap<>();
         setTitle("Pharmacy Management System");
-        setSize(1200, 760);
+        setSize(1200, 850);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         getContentPane().setBackground(BG_LIGHT);
 
         initComponents();
-        loadReferenceData(); // Asynchronous loading
+        loadReferenceData();
     }
 
     private void loadReferenceData() {
@@ -96,7 +97,6 @@ public class DashboardView extends JFrame {
         searchField.setPreferredSize(new Dimension(220, 36));
 
         JButton searchBtn = createSecondaryButton("Search");
-
         searchBtn.addActionListener(e -> searchMedicines());
         searchField.addActionListener(e -> searchMedicines());
 
@@ -119,28 +119,16 @@ public class DashboardView extends JFrame {
         centerWrapper = new JPanel(centerCards);
         centerWrapper.setBackground(BG_LIGHT);
 
-        // 1. HOME CARD
-        JPanel homePanel = new JPanel();
-        homePanel.setLayout(new BoxLayout(homePanel, BoxLayout.Y_AXIS));
+        // 1. HOME CARD (Bento Box Layout - Compact)
+        JPanel homePanel = new JPanel(new BorderLayout());
         homePanel.setBackground(BG_LIGHT);
-        homePanel.setBorder(new EmptyBorder(28, 28, 28, 28));
+        homePanel.setBorder(new EmptyBorder(20, 15, 20, 15));
 
-        JLabel homeTitle = new JLabel("Dashboard");
-        homeTitle.setFont(new Font("SansSerif", Font.BOLD, 20));
-        homeTitle.setForeground(SIDEBAR_BG);
-        homePanel.add(homeTitle);
-        homePanel.add(Box.createVerticalStrut(18));
-
-        homeWidgetsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 0));
+        homeWidgetsRow = new JPanel(new GridBagLayout());
         homeWidgetsRow.setBackground(BG_LIGHT);
-        homeWidgetsRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        homePanel.add(homeWidgetsRow);
+        homePanel.add(homeWidgetsRow, BorderLayout.CENTER);
 
-        JScrollPane homeScroll = new JScrollPane(homePanel);
-        homeScroll.setBorder(null);
-        homeScroll.getViewport().setBackground(BG_LIGHT);
-        hideScrollBar(homeScroll);
-        centerWrapper.add(homeScroll, CARD_HOME);
+        centerWrapper.add(homePanel, CARD_HOME);
 
         // 2. MEDICINES CARD
         cardsPanel = new JPanel(new GridLayout(0, 3, 18, 18));
@@ -155,7 +143,6 @@ public class DashboardView extends JFrame {
         medScroll.setBorder(null);
         medScroll.getViewport().setBackground(BG_LIGHT);
         hideScrollBar(medScroll);
-
         centerWrapper.add(medScroll, CARD_MEDICINES);
         
         centerWrapper.add(buildBrandsView(), CARD_BRANDS);
@@ -169,27 +156,100 @@ public class DashboardView extends JFrame {
         scroll.getVerticalScrollBar().setUnitIncrement(16);
     }
 
-    private JPanel buildExpiryWidget(List<Medicine> all) {
-        LocalDate today = LocalDate.now();
-        LocalDate threshold15 = today.plusDays(15);
-        LocalDate threshold30 = today.plusDays(30);
+    private void showHome() {
+        centerCards.show(centerWrapper, CARD_HOME);
+        new SwingWorker<Object[], Void>() {
+            @Override
+            protected Object[] doInBackground() {
+                List<Medicine> all = controller.getAllMedicines();
+                MedicineController.FinancialSummary stats = controller.getFinancialSummary();
+                return new Object[]{all, stats};
+            }
+            @Override
+            protected void done() {
+                try {
+                    Object[] res = get();
+                    List<Medicine> all = (List<Medicine>) res[0];
+                    MedicineController.FinancialSummary stats = (MedicineController.FinancialSummary) res[1];
+                    updateBentoDashboard(all, stats);
+                } catch (Exception e) {}
+            }
+        }.execute();
+    }
 
-        List<Medicine> withDate = all.stream()
-                .filter(m -> m.getExpirationDate() != null)
-                .filter(m -> !m.getExpirationDate().isAfter(threshold30)) // Sadece <= 30 days
+    private void updateBentoDashboard(List<Medicine> all, MedicineController.FinancialSummary stats) {
+        homeWidgetsRow.removeAll();
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.weightx = 1.0;
+
+        // ROW 1: QUICK STATS
+        JPanel statsRow = new JPanel(new GridLayout(1, 4, 15, 0));
+        statsRow.setOpaque(false);
+        statsRow.add(buildStatCard("Inventory", String.valueOf(stats.totalInventory), "📦", SIDEBAR_BG));
+        statsRow.add(buildStatCard("Revenue", String.format("%.2f TL", stats.todayRevenue), "💰", SUCCESS));
+        statsRow.add(buildStatCard("Low Stock", String.valueOf(stats.lowStockCount), "⚠️", DANGER));
+        statsRow.add(buildStatCard("Expiry", String.valueOf(stats.expiryCount), "📅", new Color(240, 140, 50)));
+
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; gbc.weighty = 0; 
+        statsRow.setPreferredSize(new Dimension(0, 95));
+        homeWidgetsRow.add(statsRow, gbc);
+
+        // ROW 2: SPLIT VIEW (Flexible)
+        gbc.gridy = 1; gbc.gridwidth = 1; gbc.weighty = 1.0;
+        gbc.weightx = 0.6;
+        JPanel expiryW = buildExpiryWidget(all);
+        expiryW.setMinimumSize(new Dimension(0, 200));
+        homeWidgetsRow.add(expiryW, gbc);
+
+        gbc.gridx = 1; gbc.weightx = 0.4;
+        JPanel lowStockW = buildLowStockWidget(all);
+        lowStockW.setMinimumSize(new Dimension(0, 200));
+        homeWidgetsRow.add(lowStockW, gbc);
+
+        // ROW 3: FOOTER FINANCE
+        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; gbc.weighty = 0;
+        gbc.weightx = 1.0;
+        JPanel financeW = buildFullWidthFinancePanel(stats);
+        financeW.setPreferredSize(new Dimension(0, 85));
+        homeWidgetsRow.add(financeW, gbc);
+
+        homeWidgetsRow.revalidate();
+        homeWidgetsRow.repaint();
+    }
+
+    private JPanel buildStatCard(String title, String value, String icon, Color accent) {
+        JPanel card = createBentoPanel();
+        card.setLayout(new BorderLayout(15, 0));
+        card.setPreferredSize(new Dimension(200, 95));
+
+        JLabel iconLbl = new JLabel(icon);
+        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 28));
+        card.add(iconLbl, BorderLayout.WEST);
+
+        JPanel info = new JPanel(new GridLayout(2, 1));
+        info.setOpaque(false);
+        JLabel t = new JLabel(title);
+        t.setFont(FONT_SMALL);
+        t.setForeground(TEXT_SECONDARY);
+        JLabel v = new JLabel(value);
+        v.setFont(new Font("SansSerif", Font.BOLD, 18));
+        v.setForeground(accent);
+        info.add(t);
+        info.add(v);
+        card.add(info, BorderLayout.CENTER);
+
+        return card;
+    }
+
+    private JPanel buildExpiryWidget(List<Medicine> all) {
+        LocalDate threshold30 = LocalDate.now().plusDays(30);
+        List<Medicine> expirations = all.stream()
+                .filter(m -> m.getExpirationDate() != null && !m.getExpirationDate().isAfter(threshold30))
                 .sorted(Comparator.comparing(Medicine::getExpirationDate)).toList();
 
-        List<Medicine> soonList = withDate.stream().limit(6).toList();
-        boolean hasUrgent = !soonList.isEmpty();
-        
-        // Mode will be calculated dynamically per card now since some might be 15, some 30.
-        // Wait, ExpiryMode is passed per widget in buildSectionWidget. Let's pass null and determine inside the hook.
-        // Or MedicineCard constructor expects ExpiryMode. We can pass a generalized one since buildSectionWidget handles it statically.
-        // Let's modify buildSectionWidget to calculate ExpiryMode per medicine.
-        
-        String hdr = "📅  Upcoming Expirations";
-        Color col = new Color(240, 140, 50); // Orange by default for expiry header if it exists
-        return buildSectionWidget(hdr, col, soonList, null);
+        return buildSectionWidget("📅  Upcoming Expirations", new Color(240, 140, 50), expirations, null);
     }
 
     private JPanel buildLowStockWidget(List<Medicine> all) {
@@ -201,75 +261,90 @@ public class DashboardView extends JFrame {
                 : all.stream().sorted(Comparator.comparingInt(Medicine::getQuantity)).limit(6).toList();
         ExpiryMode cardMode = hasUrgent ? ExpiryMode.EXPIRING_SOON : ExpiryMode.EXPIRY_SAFE;
 
-        String hdr = hasUrgent ? "⚠️  Low Stock (< 10 units)" : "📦  Stock Levels";
-        Color col = hasUrgent ? new Color(195, 50, 50) : new Color(40, 140, 80);
-        return buildSectionWidget(hdr, col, toShow, cardMode);
+        return buildSectionWidget(hasUrgent ? "⚠️  Critical Stock" : "📦  Stock Monitor", 
+                hasUrgent ? DANGER : SUCCESS, toShow, cardMode);
     }
 
-    private JPanel buildSectionWidget(String headerText, Color headerColor, List<Medicine> toShow,
-            ExpiryMode cardMode) {
-        JPanel widget = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(BG_WHITE);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
-                g2.setColor(new Color(220, 220, 220));
-                g2.drawRoundRect(0, 0, getWidth() - 2, getHeight() - 2, 18, 18);
-                g2.dispose();
-            }
-        };
-        widget.setOpaque(false);
-        widget.setBorder(new EmptyBorder(16, 16, 16, 16));
+    private JPanel buildFullWidthFinancePanel(MedicineController.FinancialSummary fin) {
+        JPanel panel = createBentoPanel();
+        panel.setLayout(new GridLayout(1, 3, 40, 0));
+        panel.setPreferredSize(new Dimension(0, 85));
+
+        panel.add(createFinanceItem("Total Revenue", String.format("%.2f TL", fin.totalSales), SUCCESS));
+        panel.add(createFinanceItem("Total Expenditure", String.format("%.2f TL", fin.totalPurchases), DANGER));
+        panel.add(createFinanceItem("Net Performance", String.format("%.2f TL", fin.netProfit), 
+                fin.netProfit.compareTo(java.math.BigDecimal.ZERO) >= 0 ? SUCCESS : DANGER));
+        
+        return panel;
+    }
+
+    private JPanel createFinanceItem(String lbl, String val, Color col) {
+        JPanel p = new JPanel(new GridLayout(2, 1));
+        p.setOpaque(false);
+        JLabel l = new JLabel(lbl, SwingConstants.CENTER);
+        l.setFont(FONT_SMALL);
+        l.setForeground(TEXT_SECONDARY);
+        JLabel v = new JLabel(val, SwingConstants.CENTER);
+        v.setFont(new Font("SansSerif", Font.BOLD, 20));
+        v.setForeground(col);
+        p.add(l);
+        p.add(v);
+        return p;
+    }
+
+    private JPanel buildSectionWidget(String headerText, Color headerColor, List<Medicine> toShow, ExpiryMode cardMode) {
+        JPanel widget = createBentoPanel();
+        widget.setLayout(new BorderLayout());
 
         JLabel headerLbl = new JLabel(headerText);
-        headerLbl.setFont(new Font("SansSerif", Font.BOLD, 15));
+        headerLbl.setFont(new Font("SansSerif", Font.BOLD, 16));
         headerLbl.setForeground(headerColor);
         widget.add(headerLbl, BorderLayout.NORTH);
 
-        JPanel grid = new JPanel(new GridLayout(0, 1, 0, 14));
+        JPanel grid = new JPanel(new GridLayout(0, 1, 0, 12));
         grid.setOpaque(false);
-        grid.setBorder(new EmptyBorder(14, 0, 0, 0));
+        grid.setBorder(new EmptyBorder(15, 0, 0, 0));
 
         for (Medicine m : toShow) {
             Brand b = brandMap.get(m.getBrandId());
             PresType p = presMap.get(m.getPresId());
             ExpiryMode computedMode = cardMode;
-            if (cardMode == null) {
-                // If it's the Expiry Widget, compute mode based on days remaining
-                if (m.getExpirationDate() != null) {
-                    long days = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), m.getExpirationDate());
-                    if (days <= 15) computedMode = ExpiryMode.EXPIRY_URGENT;
-                    else computedMode = ExpiryMode.EXPIRING_SOON;
-                } else {
-                    computedMode = ExpiryMode.EXPIRY_SAFE;
-                }
+            if (cardMode == null && m.getExpirationDate() != null) {
+                long days = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), m.getExpirationDate());
+                computedMode = (days <= 15) ? ExpiryMode.EXPIRY_URGENT : ExpiryMode.EXPIRING_SOON;
+            } else if (cardMode == null) {
+                computedMode = ExpiryMode.EXPIRY_SAFE;
             }
             grid.add(new MedicineCard(m, b != null ? b.getBrandName() : "Unknown",
                     p != null ? p.getPrescription() : "Unknown", computedMode, this::openMedicineForm));
         }
-        for (int i = toShow.size(); i < 3; i++) {
-            JPanel ghost = new JPanel();
-            ghost.setOpaque(false);
-            ghost.setPreferredSize(new Dimension(240, 160));
-            grid.add(ghost);
-        }
 
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setOpaque(false);
-        wrapper.add(grid, BorderLayout.NORTH);
-        JScrollPane scroll = new JScrollPane(wrapper);
+        JScrollPane scroll = new JScrollPane(grid);
         scroll.setBorder(null);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         hideScrollBar(scroll);
+        
         widget.add(scroll, BorderLayout.CENTER);
-
-        int fixedH = 160 * 3 + 14 * 2 + 16 + 14 + 30;
-        widget.setPreferredSize(new Dimension(290, fixedH));
-        widget.setMaximumSize(new Dimension(290, fixedH));
         return widget;
+    }
+
+    private JPanel createBentoPanel() {
+        JPanel p = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(BG_WHITE);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, CARD_RADIUS, CARD_RADIUS);
+                g2.setColor(new Color(230, 230, 230));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, CARD_RADIUS, CARD_RADIUS);
+                g2.dispose();
+            }
+        };
+        p.setOpaque(false);
+        p.setBorder(new EmptyBorder(15, 20, 15, 20));
+        return p;
     }
 
     private JPanel buildBrandsView() {
@@ -294,7 +369,6 @@ public class DashboardView extends JFrame {
             
             JLabel name = new JLabel(b.getBrandName());
             name.setFont(FONT_HEADER);
-            // Dynamic drugs for Brand
             String drugNames = controller.getMedicinesByBrand(b.getBrandId()).stream()
                     .map(Medicine::getMedName)
                     .reduce((med1, med2) -> med1 + "<br>" + med2)
@@ -312,9 +386,7 @@ public class DashboardView extends JFrame {
             card.add(infoPanel, BorderLayout.CENTER);
             
             JButton buyBtn = createPrimaryButton("Buy Stock");
-            buyBtn.addActionListener(e -> {
-                new PurchaseDialog(this, controller, b.getBrandId()).setVisible(true);
-            });
+            buyBtn.addActionListener(e -> new PurchaseDialog(this, controller, b.getBrandId()).setVisible(true));
             card.add(buyBtn, BorderLayout.SOUTH);
             grid.add(card);
         }
@@ -343,12 +415,13 @@ public class DashboardView extends JFrame {
         JButton btnHome = createNavButton("🏠  Home");
         JButton btnAll = createNavButton("📋  All Medicines");
         JButton btnBrands = createNavButton("🏷️  Brands");
+        JButton btnFinance = createNavButton("📉  Finance");
 
         content.add(btnHome);
         content.add(btnAll);
         content.add(btnBrands);
+        content.add(btnFinance);
 
-        // Submenu for Categories
         catItemsPanel = buildSidebarItemsPanel(controller.getAllCategories(), cat -> {
             JButton b = createNavSubItem("  " + ((MedicineCategory) cat).getCatName());
             b.addActionListener(e -> {
@@ -361,7 +434,6 @@ public class DashboardView extends JFrame {
         addAccordionSection(content, "📁  Categories", catItemsPanel);
 
         content.add(Box.createVerticalStrut(20));
-
         JLabel transLbl = new JLabel("TRANSACTIONS");
         transLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
         transLbl.setForeground(new Color(120, 160, 180));
@@ -380,7 +452,6 @@ public class DashboardView extends JFrame {
         content.add(btnAddCat);
 
         content.add(Box.createVerticalStrut(20));
-
         JButton btnLogout = createNavButton("🚪  Logout");
         btnLogout.addActionListener(e -> {
             dispose();
@@ -394,9 +465,7 @@ public class DashboardView extends JFrame {
         btnExit.addActionListener(e -> System.exit(0));
         content.add(btnExit);
 
-        // Attach requested explicit Sidebar Listeners via method
-        initSidebarListeners(btnHome, btnAll, btnBrands, btnSell, btnAddMed, btnAddBrand, btnAddCat);
-
+        initSidebarListeners(btnHome, btnAll, btnBrands, btnFinance, btnSell, btnAddMed, btnAddBrand, btnAddCat);
         content.add(Box.createVerticalGlue());
 
         JPanel wrapper = new JPanel(new BorderLayout());
@@ -412,72 +481,52 @@ public class DashboardView extends JFrame {
         return scroll;
     }
 
-    private void initSidebarListeners(JButton btnHome, JButton btnAll, JButton btnBrands, JButton btnSell, JButton btnAddMed, JButton btnAddBrand, JButton btnAddCat) {
+    private void initSidebarListeners(JButton btnHome, JButton btnAll, JButton btnBrands, JButton btnFinance, JButton btnSell, JButton btnAddMed, JButton btnAddBrand, JButton btnAddCat) {
         btnHome.addActionListener(e -> {
             setPageTitle("Pharmacy Dashboard");
             centerCards.show(centerWrapper, CARD_HOME);
             showHome();
-            centerWrapper.revalidate();
-            centerWrapper.repaint();
         });
 
         btnAll.addActionListener(e -> {
             setPageTitle("All Medicines");
             centerCards.show(centerWrapper, CARD_MEDICINES);
             loadTableData();
-            centerWrapper.revalidate();
-            centerWrapper.repaint();
+        });
+        
+        btnFinance.addActionListener(e -> {
+            setPageTitle("Financial Transactions");
+            centerWrapper.add(buildFinanceView(), CARD_FINANCE);
+            centerCards.show(centerWrapper, CARD_FINANCE);
         });
 
         btnBrands.addActionListener(e -> {
             setPageTitle("Managed Brands");
-            // Find and remove old brands view securely
-            Component[] comps = centerWrapper.getComponents();
-            for (Component c : comps) {
-                if ("brands".equals(c.getName())) {
-                    centerWrapper.remove(c);
-                }
-            }
-            JPanel brandsView = buildBrandsView();
-            brandsView.setName("brands");
-            centerWrapper.add(brandsView, CARD_BRANDS);
+            centerWrapper.add(buildBrandsView(), CARD_BRANDS);
             centerCards.show(centerWrapper, CARD_BRANDS);
-            centerWrapper.revalidate();
-            centerWrapper.repaint();
         });
 
-        btnSell.addActionListener(e -> {
-            new SellDrugDialog(this, controller).setVisible(true);
-        });
-
-        btnAddMed.addActionListener(e -> {
-            openMedicineForm(null);
-        });
-
+        btnSell.addActionListener(e -> new SellDrugDialog(this, controller).setVisible(true));
+        btnAddMed.addActionListener(e -> openMedicineForm(null));
         btnAddBrand.addActionListener(e -> {
             String brandName = JOptionPane.showInputDialog(this, "Enter New Brand Name:", "Add Brand", JOptionPane.PLAIN_MESSAGE);
             if (brandName != null && !brandName.trim().isEmpty()) {
                 Brand newBrand = new Brand();
                 newBrand.setBrandName(brandName.trim());
                 controller.addBrand(newBrand);
-                loadReferenceData(); // Refresh UI mappings
+                loadReferenceData();
                 ThemedDialog.showMessage(this, "Brand added successfully!", ThemedDialog.Kind.SUCCESS);
             }
         });
-
         btnAddCat.addActionListener(e -> {
             String catName = JOptionPane.showInputDialog(this, "Enter New Category Name:", "Add Category", JOptionPane.PLAIN_MESSAGE);
             if (catName != null && !catName.trim().isEmpty()) {
                 MedicineCategory mc = new MedicineCategory(0, catName.trim(), "");
                 controller.addCategory(mc);
-                loadReferenceData(); // Refresh sidebar categories
+                loadReferenceData();
                 ThemedDialog.showMessage(this, "Category added successfully!", ThemedDialog.Kind.SUCCESS);
             }
         });
-    }
-
-    interface ItemButtonFactory {
-        JButton make(Object item);
     }
 
     private JPanel buildSidebarItemsPanel(List<?> items, ItemButtonFactory factory) {
@@ -486,9 +535,7 @@ public class DashboardView extends JFrame {
         panel.setBackground(SIDEBAR_BG);
         panel.setVisible(false);
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        for (Object item : items) {
-            panel.add(factory.make(item));
-        }
+        for (Object item : items) panel.add(factory.make(item));
         return panel;
     }
 
@@ -506,55 +553,21 @@ public class DashboardView extends JFrame {
     }
 
     private void rebuildSidebar() {
-        if (((BorderLayout) getContentPane().getLayout()).getLayoutComponent(BorderLayout.WEST) != null) {
-            remove(((BorderLayout) getContentPane().getLayout()).getLayoutComponent(BorderLayout.WEST));
-        }
+        BorderLayout layout = (BorderLayout) getContentPane().getLayout();
+        Component west = layout.getLayoutComponent(BorderLayout.WEST);
+        if (west != null) remove(west);
         add(buildSidebar(), BorderLayout.WEST);
         revalidate();
         repaint();
     }
 
-    // =====================================================================
-    // ⬇️ UI DONMASINI ENGELLEYEN ASENKRON ÇAĞRILAR (SWINGWORKER) ⬇️
-    // =====================================================================
-
-    private void showHome() {
-        centerCards.show(centerWrapper, CARD_HOME);
-
-        // Async Data Load for home panels
-        new SwingWorker<List<Medicine>, Void>() {
-            @Override
-            protected List<Medicine> doInBackground() {
-                return controller.getAllMedicines();
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    List<Medicine> all = get();
-                    homeWidgetsRow.removeAll();
-                    homeWidgetsRow.add(buildExpiryWidget(all));
-                    homeWidgetsRow.add(buildLowStockWidget(all));
-                    homeWidgetsRow.revalidate();
-                    homeWidgetsRow.repaint();
-                } catch (Exception e) {
-                }
-            }
-        }.execute();
-    }
-
     public void loadTableData() {
         new SwingWorker<List<Medicine>, Void>() {
             @Override
-            protected List<Medicine> doInBackground() {
-                return controller.getAllMedicines();
-            }
-
+            protected List<Medicine> doInBackground() { return controller.getAllMedicines(); }
             @Override
             protected void done() {
-                try {
-                    updateCardsPanel(get());
-                } catch (Exception e) {}
+                try { updateCardsPanel(get()); } catch (Exception e) {}
             }
         }.execute();
     }
@@ -562,27 +575,18 @@ public class DashboardView extends JFrame {
     private void searchMedicines() {
         String kw = searchField.getText().trim();
         setPageTitle(kw.isEmpty() ? "All Medicines" : "Search: " + kw);
-        centerCards.show(centerWrapper, CARD_MEDICINES); // Ekranı anında listeye çevir
-
-        if (kw.isEmpty()) {
-            loadTableData();
-            return;
-        }
+        centerCards.show(centerWrapper, CARD_MEDICINES);
+        if (kw.isEmpty()) { loadTableData(); return; }
         updateCardsPanel(controller.searchMedicines(kw));
     }
 
     private void filterByCategory(int catId) {
         new SwingWorker<List<Medicine>, Void>() {
             @Override
-            protected List<Medicine> doInBackground() {
-                return controller.getMedicinesByCategory(catId);
-            }
-
+            protected List<Medicine> doInBackground() { return controller.getMedicinesByCategory(catId); }
             @Override
             protected void done() {
-                try {
-                    updateCardsPanel(get());
-                } catch (Exception e) {}
+                try { updateCardsPanel(get()); } catch (Exception e) {}
             }
         }.execute();
     }
@@ -590,25 +594,20 @@ public class DashboardView extends JFrame {
     private void updateCardsPanel(List<Medicine> meds) {
         cardsPanel.removeAll();
         if (meds == null) return;
-        
         for (Medicine m : meds) {
             Brand b = brandMap.get(m.getBrandId());
             PresType p = presMap.get(m.getPresId());
-            MedicineCard card = new MedicineCard(m, b != null ? b.getBrandName() : "Unknown",
-                    p != null ? p.getPrescription() : "Unknown", this::openMedicineForm);
-            cardsPanel.add(card);
+            cardsPanel.add(new MedicineCard(m, b != null ? b.getBrandName() : "Unknown",
+                    p != null ? p.getPrescription() : "Unknown", this::openMedicineForm));
         }
-        
         int rem = meds.size() % 3;
         if (!meds.isEmpty() && rem != 0) {
             for (int i = 0; i < 3 - rem; i++) {
-                JPanel g = new JPanel();
-                g.setOpaque(false);
+                JPanel g = new JPanel(); g.setOpaque(false);
                 g.setPreferredSize(new Dimension(240, 160));
                 cardsPanel.add(g);
             }
         }
-        
         cardsPanel.revalidate();
         cardsPanel.repaint();
     }
@@ -623,8 +622,7 @@ public class DashboardView extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 if (getModel().isRollover() || getModel().isArmed()) {
-                    g2.setColor(SIDEBAR_HOVER);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                    g2.setColor(SIDEBAR_HOVER); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 }
                 g2.dispose();
                 super.paintComponent(g);
@@ -634,11 +632,8 @@ public class DashboardView extends JFrame {
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         btn.setFont(new Font("SansSerif", Font.PLAIN, 17));
         btn.setForeground(new Color(220, 235, 240));
-        btn.setOpaque(false);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setHorizontalAlignment(SwingConstants.LEFT);
+        btn.setOpaque(false); btn.setContentAreaFilled(false); btn.setBorderPainted(false);
+        btn.setFocusPainted(false); btn.setHorizontalAlignment(SwingConstants.LEFT);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }
@@ -663,13 +658,9 @@ public class DashboardView extends JFrame {
                 super.paintComponent(g);
             }
         };
-        btn.setFont(FONT_LABEL);
-        btn.setForeground(Color.WHITE);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setOpaque(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(6, 18, 6, 18));
+        btn.setFont(FONT_LABEL); btn.setForeground(Color.WHITE);
+        btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setOpaque(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR)); btn.setBorder(new EmptyBorder(6, 18, 6, 18));
         return btn;
     }
 
@@ -679,42 +670,60 @@ public class DashboardView extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isArmed() ? new Color(215, 215, 215)
-                        : getModel().isRollover() ? new Color(235, 235, 235) : new Color(245, 245, 245));
+                g2.setColor(getModel().isArmed() ? new Color(215, 215, 215) : getModel().isRollover() ? new Color(235, 235, 235) : new Color(245, 245, 245));
                 g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        btn.setFont(FONT_BODY);
-        btn.setForeground(TEXT_PRIMARY);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(6, 14, 6, 14));
+        btn.setFont(FONT_BODY); btn.setForeground(TEXT_PRIMARY);
+        btn.setContentAreaFilled(false); btn.setBorderPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR)); btn.setBorder(new EmptyBorder(6, 14, 6, 14));
         return btn;
     }
 
-    static class StyledTextField extends JTextField {
-        private final String hint;
+    private JPanel buildFinanceView() {
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setBackground(BG_LIGHT);
+        wrap.setBorder(new EmptyBorder(24, 24, 24, 24));
+        String[] cols = {"Date", "Type", "Reference", "Amount (TL)"};
+        javax.swing.table.DefaultTableModel model = new javax.swing.table.DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        table.setRowHeight(30); table.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 15));
+        table.getTableHeader().setBackground(new Color(240, 240, 240));
+        table.setFillsViewportHeight(true);
 
+        new SwingWorker<List<MedicineController.FinancialTransaction>, Void>() {
+            @Override protected List<MedicineController.FinancialTransaction> doInBackground() { return controller.getFinancialTransactions(); }
+            @Override protected void done() {
+                try {
+                    for (MedicineController.FinancialTransaction tx : get()) {
+                        model.addRow(new Object[]{tx.date, tx.type, tx.reference, String.format("%.2f", tx.amount)});
+                    }
+                } catch(Exception e){}
+            }
+        }.execute();
+        wrap.add(new JScrollPane(table), BorderLayout.CENTER);
+        return wrap;
+    }
+
+    interface ItemButtonFactory { JButton make(Object item); }
+
+    static class StyledTextField extends JTextField {
         StyledTextField(int cols, String hint) {
             super(cols);
-            this.hint = hint;
-            setOpaque(false);
-            setBorder(new EmptyBorder(6, 14, 6, 14));
-            setFont(ThemeConstants.FONT_BODY);
-            setForeground(ThemeConstants.TEXT_PRIMARY);
+            setOpaque(false); setBorder(new EmptyBorder(6, 14, 6, 14));
+            setFont(ThemeConstants.FONT_BODY); setForeground(ThemeConstants.TEXT_PRIMARY);
         }
-
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(Color.WHITE);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
-            g2.setColor(new Color(220, 220, 220));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
+            g2.setColor(Color.WHITE); g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
+            g2.setColor(new Color(220, 220, 220)); g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
             g2.dispose();
             super.paintComponent(g);
         }
