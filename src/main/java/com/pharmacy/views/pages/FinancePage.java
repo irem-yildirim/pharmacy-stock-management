@@ -43,25 +43,15 @@ public class FinancePage extends AbstractPage {
 
     @Override
     public void onPageEnter() {
-        // Load data every time page is shown
         model.setRowCount(0);
-        new SwingWorker<List<ReportController.FinancialTransaction>, Void>() {
-            @Override
-            protected List<ReportController.FinancialTransaction> doInBackground() {
-                return reportController.getFinancialTransactions();
+        try {
+            List<ReportController.FinancialTransaction> trans = reportController.getFinancialTransactions();
+            for (ReportController.FinancialTransaction tx : trans) {
+                model.addRow(new Object[] { tx.date, tx.type, tx.reference, String.format("%.2f", tx.amount) });
             }
-
-            @Override
-            protected void done() {
-                try {
-                    for (ReportController.FinancialTransaction tx : get()) {
-                        model.addRow(new Object[] { tx.date, tx.type, tx.reference, String.format("%.2f", tx.amount) });
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

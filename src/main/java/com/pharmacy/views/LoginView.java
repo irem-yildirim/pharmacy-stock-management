@@ -108,7 +108,7 @@ public class LoginView extends JFrame {
         }
     }
 
-    /// Giriş yaparken uygulama donmasın diye db sorgusunu arkaplanda(SwingWorker).
+    /// Giriş kontrolleri (Basit yapı)
     private void handleLogin(ActionEvent e) {
         User selectedUser = (User) userCombo.getSelectedItem();
         String password = new String(passwordField.getPassword());
@@ -118,39 +118,23 @@ public class LoginView extends JFrame {
             return;
         }
 
-        loginButton.setText("Connecting...");
-        loginButton.setEnabled(false);
-
-        new SwingWorker<Boolean, Void>() {
-            @Override
-            protected Boolean doInBackground() {
-                // Saf veritabanı isteği arkaplanda çalışır
-                return loginController.login(selectedUser.getUsername(), password);
+        try {
+            boolean success = loginController.login(selectedUser.getUsername(), password);
+            if (success) {
+                LoginView.this.dispose();
+                DashboardView dashboard = new DashboardView(
+                    loginController.getInventoryController(),
+                    loginController.getTransactionController(),
+                    loginController.getReportController()
+                );
+                dashboard.setVisible(true);
+            } else {
+                ThemedDialog.showMessage(LoginView.this, "Invalid credentials.", ThemedDialog.Kind.ERROR);
+                passwordField.setText("");
             }
-
-            @Override
-            protected void done() {
-                try {
-                    if (get()) {
-                        LoginView.this.dispose();
-                        DashboardView dashboard = new DashboardView(
-                            loginController.getInventoryController(),
-                            loginController.getTransactionController(),
-                            loginController.getReportController()
-                        );
-                        dashboard.setVisible(true);
-                    } else {
-                        ThemedDialog.showMessage(LoginView.this, "Invalid credentials.", ThemedDialog.Kind.ERROR);
-                        passwordField.setText("");
-                    }
-                } catch (Exception ex) {
-                    ThemedDialog.showMessage(LoginView.this, "System error.", ThemedDialog.Kind.ERROR);
-                } finally {
-                    loginButton.setText("Login");
-                    loginButton.setEnabled(true);
-                }
-            }
-        }.execute();
+        } catch (Exception ex) {
+            ThemedDialog.showMessage(LoginView.this, "System error.", ThemedDialog.Kind.ERROR);
+        }
     }
 
     static class StyledUserCombo extends JComboBox<User> {

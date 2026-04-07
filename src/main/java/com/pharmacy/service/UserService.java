@@ -17,18 +17,7 @@ public class UserService {
         return userDAO.findAll();
     }
 
-    public User saveUser(User user) {
-        if (user.getId() != null) {
-            userDAO.update(user);
-        } else {
-            userDAO.save(user);
-        }
-        return user;
-    }
-
-    public void deleteUser(Long id) {
-        userDAO.delete(id);
-    }
+    // saveUser and deleteUser removed since UI disabled
 
     public boolean authenticate(String username, String password) {
         User user = userDAO.findByUsername(username);

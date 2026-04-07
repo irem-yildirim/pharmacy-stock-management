@@ -9,53 +9,17 @@ public class UserDAO implements BaseDAO<User, Long> {
 
     @Override
     public void save(User user) {
-        String query = "INSERT INTO users (name, email, username, password, role) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = DBConnection.getInstance().getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
-            pstmt.setString(1, user.getName());
-            pstmt.setString(2, user.getEmail());
-            pstmt.setString(3, user.getUsername());
-            pstmt.setString(4, user.getPassword());
-            pstmt.setString(5, user.getRole());
-            pstmt.executeUpdate();
-
-            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    user.setId(generatedKeys.getLong(1));
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        throw new UnsupportedOperationException("User creation via UI is disabled.");
     }
 
     @Override
     public void update(User user) {
-        String query = "UPDATE users SET name=?, email=?, username=?, password=?, role=? WHERE id=?";
-        try (Connection conn = DBConnection.getInstance().getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, user.getName());
-            pstmt.setString(2, user.getEmail());
-            pstmt.setString(3, user.getUsername());
-            pstmt.setString(4, user.getPassword());
-            pstmt.setString(5, user.getRole());
-            pstmt.setLong(6, user.getId());
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        throw new UnsupportedOperationException("User update via UI is disabled.");
     }
 
     @Override
     public void delete(Long id) {
-        String query = "DELETE FROM users WHERE id=?";
-        try (Connection conn = DBConnection.getInstance().getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setLong(1, id);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        throw new UnsupportedOperationException("User deletion via UI is disabled.");
     }
 
     @Override

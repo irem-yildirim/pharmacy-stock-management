@@ -60,31 +60,24 @@ public class SaleService {
         return saleDAO.findAll();
     }
 
-    public Sale getSaleById(Long id) {
-        System.out.println("[Sale] Fetching sale #" + id);
-        Sale sale = saleDAO.findById(id);
-        if (sale == null) {
-            throw new IllegalArgumentException("Sale not found: " + id);
-        }
-        return sale;
-    }
-
-    public List<SaleItem> getAllSaleItems() {
-        System.out.println("[Sale] Fetching full sale history (all SaleItems)");
-        return saleItemDAO.findAll();
-    }
-
     public BigDecimal calculateTotalSales() {
-        return getAllSales().stream()
-                .map(s -> s.getTotalAmount() != null ? s.getTotalAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total = BigDecimal.ZERO;
+        for (Sale s : getAllSales()) {
+            if (s.getTotalAmount() != null) {
+                total = total.add(s.getTotalAmount());
+            }
+        }
+        return total;
     }
 
     public BigDecimal calculateTodaySales() {
         java.time.LocalDate today = java.time.LocalDate.now();
-        return getAllSales().stream()
-                .filter(s -> today.equals(s.getSaleDate()))
-                .map(s -> s.getTotalAmount() != null ? s.getTotalAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total = BigDecimal.ZERO;
+        for (Sale s : getAllSales()) {
+            if (today.equals(s.getSaleDate()) && s.getTotalAmount() != null) {
+                total = total.add(s.getTotalAmount());
+            }
+        }
+        return total;
     }
 }

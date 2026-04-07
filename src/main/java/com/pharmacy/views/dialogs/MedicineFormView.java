@@ -307,8 +307,14 @@ public class MedicineFormView extends JDialog {
 
     private void handleSave() {
         try {
+            String bcode = barcodeField.getText().trim();
+            if (bcode.isEmpty()) {
+                ThemedDialog.showMessage(this, "Barcode cannot be empty!", ThemedDialog.Kind.ERROR);
+                return;
+            }
+
             Drug d = (medicine == null) ? new Drug() : medicine;
-            d.setBarcode(barcodeField.getText().trim());
+            d.setBarcode(bcode);
             d.setName(nameField.getText().trim());
             d.setCostPrice(new BigDecimal(costField.getText().trim()));
             d.setSellingPrice(new BigDecimal(priceField.getText().trim()));

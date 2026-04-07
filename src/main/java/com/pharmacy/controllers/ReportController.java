@@ -63,16 +63,19 @@ public class ReportController {
     public FinancialSummary getFinancialSummary() {
         List<Drug> all = drugService.getAllDrugs();
         int totalInv = all.size();
-        int lowStock = (int) all.stream().filter(m -> m.getStockQuantity() < 10).count();
-
+        int lowStock = 0;
+        int expCount = 0;
         LocalDate threshold30 = LocalDate.now().plusDays(30);
-        int expCount = (int) all.stream()
-                .filter(m -> {
-                    Expiry exp = m.getExpiry();
-                    return exp != null && exp.getExpirationDate() != null
-                            && !exp.getExpirationDate().isAfter(threshold30);
-                })
-                .count();
+
+        for (Drug m : all) {
+            if (m.getStockQuantity() < 10) {
+                lowStock++;
+            }
+            Expiry exp = m.getExpiry();
+            if (exp != null && exp.getExpirationDate() != null && !exp.getExpirationDate().isAfter(threshold30)) {
+                expCount++;
+            }
+        }
 
         return new FinancialSummary(
                 saleService.calculateTotalSales(),

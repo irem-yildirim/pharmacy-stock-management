@@ -37,27 +37,13 @@ public class HomePage extends AbstractPage {
 
     @Override
     public void onPageEnter() {
-        new SwingWorker<Object[], Void>() {
-            @Override
-            protected Object[] doInBackground() {
-                List<Drug> all = inventoryController.getAllMedicines();
-                ReportController.FinancialSummary stats = reportController.getFinancialSummary();
-                return new Object[] { all, stats };
-            }
-
-            @Override
-            @SuppressWarnings("unchecked")
-            protected void done() {
-                try {
-                    Object[] res = get();
-                    List<Drug> all = (List<Drug>) res[0];
-                    ReportController.FinancialSummary stats = (ReportController.FinancialSummary) res[1];
-                    updateBentoDashboard(all, stats);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }.execute();
+        try {
+            List<Drug> all = inventoryController.getAllMedicines();
+            ReportController.FinancialSummary stats = reportController.getFinancialSummary();
+            updateBentoDashboard(all, stats);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

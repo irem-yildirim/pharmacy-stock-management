@@ -43,12 +43,7 @@ public class PurchaseService {
         return purchaseDAO.findAll();
     }
 
-    public List<Purchase> getPurchasesByDrug(String barcode) {
-        System.out.println("[Purchase] Fetching purchases for drug: " + barcode);
-        List<Purchase> all = purchaseDAO.findAll();
-        all.removeIf(p -> p.getDrug() == null || !barcode.equals(p.getDrug().getBarcode()));
-        return all;
-    }
+
 
     public java.math.BigDecimal calculateTotalPurchases() {
         java.math.BigDecimal total = java.math.BigDecimal.ZERO;

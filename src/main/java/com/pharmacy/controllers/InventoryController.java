@@ -7,7 +7,6 @@ import com.pharmacy.dao.BrandDAO;
 import com.pharmacy.dao.PresTypeDAO;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Stok, kategori, marka ve genel envanter operasyonlarını yönetir.
@@ -39,24 +38,38 @@ public class InventoryController {
 
     public List<Drug> searchMedicines(String keyword) {
         final String kw = keyword.toLowerCase().trim();
-        return drugService.getAllDrugs().stream()
-                .filter(d -> d.getName().toLowerCase().contains(kw) ||
-                        String.valueOf(d.getBarcode()).contains(kw) ||
-                        (d.getBrand() != null && d.getBrand().getBrandName().toLowerCase().contains(kw)) ||
-                        (d.getCategory() != null && d.getCategory().getName().toLowerCase().contains(kw)))
-                .collect(Collectors.toList());
+        List<Drug> results = new java.util.ArrayList<>();
+        for (Drug d : drugService.getAllDrugs()) {
+            boolean matchesName = d.getName().toLowerCase().contains(kw);
+            boolean matchesBarcode = String.valueOf(d.getBarcode()).contains(kw);
+            boolean matchesBrand = d.getBrand() != null && d.getBrand().getBrandName().toLowerCase().contains(kw);
+            boolean matchesCat = d.getCategory() != null && d.getCategory().getName().toLowerCase().contains(kw);
+            
+            if (matchesName || matchesBarcode || matchesBrand || matchesCat) {
+                results.add(d);
+            }
+        }
+        return results;
     }
 
     public List<Drug> getMedicinesByBrand(long brandId) {
-        return getAllMedicines().stream()
-                .filter(m -> m.getBrand() != null && m.getBrand().getBrandId() == brandId)
-                .collect(Collectors.toList());
+        List<Drug> results = new java.util.ArrayList<>();
+        for (Drug m : getAllMedicines()) {
+            if (m.getBrand() != null && m.getBrand().getBrandId() == brandId) {
+                results.add(m);
+            }
+        }
+        return results;
     }
 
     public List<Drug> getMedicinesByCategory(long catId) {
-        return getAllMedicines().stream()
-                .filter(m -> m.getCategory() != null && m.getCategory().getId() == catId)
-                .collect(Collectors.toList());
+        List<Drug> results = new java.util.ArrayList<>();
+        for (Drug m : getAllMedicines()) {
+            if (m.getCategory() != null && m.getCategory().getId() == catId) {
+                results.add(m);
+            }
+        }
+        return results;
     }
 
     public boolean addMedicine(Drug med) { drugService.addDrug(med); return true; }

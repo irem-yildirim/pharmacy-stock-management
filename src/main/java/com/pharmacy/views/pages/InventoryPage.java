@@ -66,20 +66,12 @@ public class InventoryPage extends AbstractPage {
     }
 
     public void filterByCategory(long catId) {
-        new SwingWorker<List<Drug>, Void>() {
-            @Override
-            protected List<Drug> doInBackground() {
-                return inventoryController.getMedicinesByCategory(catId);
-            }
-            @Override
-            protected void done() {
-                try {
-                    updateCardsPanel(get());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }.execute();
+        try {
+            List<Drug> meds = inventoryController.getMedicinesByCategory(catId);
+            updateCardsPanel(meds);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -91,20 +83,12 @@ public class InventoryPage extends AbstractPage {
     public void onPageExit() {}
 
     private void loadTableData() {
-        new SwingWorker<List<Drug>, Void>() {
-            @Override
-            protected List<Drug> doInBackground() {
-                return inventoryController.getAllMedicines();
-            }
-            @Override
-            protected void done() {
-                try {
-                    updateCardsPanel(get());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }.execute();
+        try {
+            List<Drug> meds = inventoryController.getAllMedicines();
+            updateCardsPanel(meds);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void updateCardsPanel(List<Drug> meds) {

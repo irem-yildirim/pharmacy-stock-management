@@ -94,6 +94,21 @@ public class DrugDAO implements BaseDAO<Drug, String> {
             pstmt.setString(8, drug.getBarcode());
 
             pstmt.executeUpdate();
+
+            // Kayıp SKT Onarımı: Varsa eski tarihleri silip yeniyi ekliyoruz
+            if (drug.getExpiry() != null && drug.getExpiry().getExpirationDate() != null) {
+                try (PreparedStatement delStmt = conn.prepareStatement("DELETE FROM expiry WHERE drug_barcode=?")) {
+                    delStmt.setString(1, drug.getBarcode());
+                    delStmt.executeUpdate();
+                }
+                
+                try (PreparedStatement insStmt = conn.prepareStatement("INSERT INTO expiry (drug_barcode, expiration_date) VALUES (?, ?)")) {
+                    insStmt.setString(1, drug.getBarcode());
+                    insStmt.setDate(2, java.sql.Date.valueOf(drug.getExpiry().getExpirationDate()));
+                    insStmt.executeUpdate();
+                }
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }

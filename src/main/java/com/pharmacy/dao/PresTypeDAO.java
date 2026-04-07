@@ -9,46 +9,17 @@ public class PresTypeDAO implements BaseDAO<PresType, Integer> {
 
     @Override
     public void save(PresType p) {
-        String query = "INSERT INTO pres_type (name, level) VALUES (?, ?)";
-        try (Connection conn = DBConnection.getInstance().getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
-            pstmt.setString(1, p.getPrescription());
-            pstmt.setInt(2, p.getRiskLevel());
-            pstmt.executeUpdate();
-            try (ResultSet rs = pstmt.getGeneratedKeys()) {
-                if (rs.next()) {
-                    p.setPresId(rs.getInt(1));
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        throw new UnsupportedOperationException("Prescription Type creation via UI is disabled.");
     }
 
     @Override
     public void update(PresType p) {
-        String query = "UPDATE pres_type SET name=?, level=? WHERE id=?";
-        try (Connection conn = DBConnection.getInstance().getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, p.getPrescription());
-            pstmt.setInt(2, p.getRiskLevel());
-            pstmt.setInt(3, p.getPresId());
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        throw new UnsupportedOperationException("Prescription Type update via UI is disabled.");
     }
 
     @Override
     public void delete(Integer id) {
-        String query = "DELETE FROM pres_type WHERE id=?";
-        try (Connection conn = DBConnection.getInstance().getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setInt(1, id);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        throw new UnsupportedOperationException("Prescription Type deletion via UI is disabled.");
     }
 
     @Override

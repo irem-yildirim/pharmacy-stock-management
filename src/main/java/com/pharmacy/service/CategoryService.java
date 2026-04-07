@@ -16,9 +16,6 @@ public class CategoryService {
         return categoryDAO.findAll();
     }
 
-    public Category getCategoryById(Long id) {
-        return categoryDAO.findById(id);
-    }
 
     public Category saveCategory(Category category) {
         if (category.getId() != null) {
