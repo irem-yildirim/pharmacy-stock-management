@@ -15,7 +15,6 @@ import java.awt.*;
 public class ManageMetadataView extends JFrame {
 
     private final InventoryController controller;
-    private final DashboardView parentDashboard;
     
     private DefaultListModel<Brand> brandModel;
     private DefaultListModel<Category> catModel;
@@ -26,7 +25,6 @@ public class ManageMetadataView extends JFrame {
     private JList<PresType> presList;
 
     public ManageMetadataView(DashboardView parent, InventoryController controller) {
-        this.parentDashboard = parent;
         this.controller = controller;
         setTitle("Manage Metadata");
         setSize(800, 600);

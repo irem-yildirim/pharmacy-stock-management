@@ -25,7 +25,6 @@ public class Main {
                 PurchaseDAO purchaseDAO = new PurchaseDAO();
                 SaleDAO saleDAO = new SaleDAO();
                 SaleItemDAO saleItemDAO = new SaleItemDAO();
-                ExpiryDAO expiryDAO = new ExpiryDAO();
 
                 // 2) Service Katmanı
                 UserService userService = new UserService(userDAO);

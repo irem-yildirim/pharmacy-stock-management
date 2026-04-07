@@ -9,7 +9,6 @@ import com.pharmacy.dao.UserDAO;
 import com.pharmacy.entity.Brand;
 import com.pharmacy.entity.Category;
 import com.pharmacy.entity.Drug;
-import com.pharmacy.views.components.ThemeConstants;
 import com.pharmacy.views.components.ThemedDialog;
 import com.pharmacy.views.dialogs.ManageMetadataView;
 import com.pharmacy.views.dialogs.MedicineFormView;
@@ -26,7 +25,7 @@ import java.awt.*;
 import static com.pharmacy.views.components.ThemeConstants.*;
 
 public class DashboardView extends JFrame {
-    
+
     private final InventoryController inventoryController;
     private final TransactionController transactionController;
     private final ReportController reportController;
@@ -56,10 +55,14 @@ public class DashboardView extends JFrame {
     }
 
     private void loadPagesAndStart() {
-        navigationManager.registerPage(new HomePage(this, inventoryController, transactionController, reportController));
-        navigationManager.registerPage(new InventoryPage(this, inventoryController, transactionController, reportController));
-        navigationManager.registerPage(new BrandsPage(this, inventoryController, transactionController, reportController));
-        navigationManager.registerPage(new FinancePage(this, inventoryController, transactionController, reportController));
+        navigationManager
+                .registerPage(new HomePage(this, inventoryController, transactionController, reportController));
+        navigationManager
+                .registerPage(new InventoryPage(this, inventoryController, transactionController, reportController));
+        navigationManager
+                .registerPage(new BrandsPage(this, inventoryController, transactionController, reportController));
+        navigationManager
+                .registerPage(new FinancePage(this, inventoryController, transactionController, reportController));
 
         rebuildSidebar();
         navigationManager.showPage("Home");
@@ -128,13 +131,13 @@ public class DashboardView extends JFrame {
         catPanel.setBackground(SIDEBAR_BG);
         catPanel.setVisible(false);
         catPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
+
         for (Category c : inventoryController.getAllCategories()) {
             JButton b = createNavSubItem("  " + c.getName());
             b.addActionListener(e -> {
                 setPageTitle(c.getName() + " Medicines");
                 navigationManager.showPage("Inventory");
-                ((InventoryPage)navigationManager.getCurrentPage()).filterByCategory(c.getId());
+                ((InventoryPage) navigationManager.getCurrentPage()).filterByCategory(c.getId());
             });
             catPanel.add(b);
         }
@@ -174,7 +177,8 @@ public class DashboardView extends JFrame {
         JButton btnLogout = createNavButton("🚪  Logout");
         btnLogout.addActionListener(e -> {
             dispose();
-            new LoginView(new LoginController(new UserService(new UserDAO()), inventoryController, transactionController, reportController)).setVisible(true);
+            new LoginView(new LoginController(new UserService(new UserDAO()), inventoryController,
+                    transactionController, reportController)).setVisible(true);
         });
         content.add(btnLogout);
 
@@ -183,17 +187,31 @@ public class DashboardView extends JFrame {
         content.add(btnExit);
 
         // Listeners
-        btnHome.addActionListener(e -> { setPageTitle("Pharmacy Dashboard"); navigationManager.showPage("Home"); });
-        btnAll.addActionListener(e -> { setPageTitle("All Medicines"); navigationManager.showPage("Inventory"); });
-        btnBrands.addActionListener(e -> { setPageTitle("Managed Brands"); navigationManager.showPage("Brands"); });
-        btnFinance.addActionListener(e -> { setPageTitle("Financial Transactions"); navigationManager.showPage("Finance"); });
-        
-        btnSell.addActionListener(e -> new SellDrugDialog(this, transactionController, inventoryController).setVisible(true));
+        btnHome.addActionListener(e -> {
+            setPageTitle("Pharmacy Dashboard");
+            navigationManager.showPage("Home");
+        });
+        btnAll.addActionListener(e -> {
+            setPageTitle("All Medicines");
+            navigationManager.showPage("Inventory");
+        });
+        btnBrands.addActionListener(e -> {
+            setPageTitle("Managed Brands");
+            navigationManager.showPage("Brands");
+        });
+        btnFinance.addActionListener(e -> {
+            setPageTitle("Financial Transactions");
+            navigationManager.showPage("Finance");
+        });
+
+        btnSell.addActionListener(
+                e -> new SellDrugDialog(this, transactionController, inventoryController).setVisible(true));
         btnAddMed.addActionListener(e -> openMedicineForm(null));
         btnManage.addActionListener(e -> new ManageMetadataView(this, inventoryController).setVisible(true));
 
         btnAddBrand.addActionListener(e -> {
-            String brandName = JOptionPane.showInputDialog(this, "Enter New Brand Name:", "Add Brand", JOptionPane.PLAIN_MESSAGE);
+            String brandName = JOptionPane.showInputDialog(this, "Enter New Brand Name:", "Add Brand",
+                    JOptionPane.PLAIN_MESSAGE);
             if (brandName != null && !brandName.trim().isEmpty()) {
                 Brand newBrand = new Brand();
                 newBrand.setBrandName(brandName.trim());
@@ -203,9 +221,10 @@ public class DashboardView extends JFrame {
                 ThemedDialog.showMessage(this, "Brand added successfully!", ThemedDialog.Kind.SUCCESS);
             }
         });
-        
+
         btnAddCat.addActionListener(e -> {
-            String catName = JOptionPane.showInputDialog(this, "Enter New Category Name:", "Add Category", JOptionPane.PLAIN_MESSAGE);
+            String catName = JOptionPane.showInputDialog(this, "Enter New Category Name:", "Add Category",
+                    JOptionPane.PLAIN_MESSAGE);
             if (catName != null && !catName.trim().isEmpty()) {
                 Category mc = new Category();
                 mc.setName(catName.trim());
@@ -232,7 +251,8 @@ public class DashboardView extends JFrame {
     private void rebuildSidebar() {
         BorderLayout layout = (BorderLayout) getContentPane().getLayout();
         Component west = layout.getLayoutComponent(BorderLayout.WEST);
-        if (west != null) remove(west);
+        if (west != null)
+            remove(west);
         add(buildSidebar(), BorderLayout.WEST);
         revalidate();
         repaint();
@@ -241,9 +261,9 @@ public class DashboardView extends JFrame {
     public void openMedicineForm(Drug medicine) {
         new MedicineFormView(this, inventoryController, medicine).setVisible(true);
     }
-    
+
     public void loadTableData() {
-        if(navigationManager.getCurrentPage() instanceof InventoryPage) {
+        if (navigationManager.getCurrentPage() instanceof InventoryPage) {
             navigationManager.getCurrentPage().onPageEnter();
         }
     }

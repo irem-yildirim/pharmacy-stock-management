@@ -12,14 +12,13 @@ import static com.pharmacy.views.components.ThemeConstants.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 
 public class BrandsPage extends AbstractPage {
 
     private final JPanel grid;
 
-    public BrandsPage(DashboardView parent, InventoryController invC, TransactionController transC, ReportController repC) {
+    public BrandsPage(DashboardView parent, InventoryController invC, TransactionController transC,
+            ReportController repC) {
         super("Brands", parent, invC, transC, repC);
 
         getContainer().setBackground(BG_LIGHT);
@@ -70,7 +69,9 @@ public class BrandsPage extends AbstractPage {
             card.add(infoPanel, BorderLayout.CENTER);
 
             JButton buyBtn = createPrimaryButton("Buy Stock");
-            buyBtn.addActionListener(e -> new PurchaseDialog(parent, transactionController, inventoryController, b.getBrandId()).setVisible(true));
+            buyBtn.addActionListener(
+                    e -> new PurchaseDialog(parent, transactionController, inventoryController, b.getBrandId())
+                            .setVisible(true));
             card.add(buyBtn, BorderLayout.SOUTH);
             grid.add(card);
         }
@@ -79,7 +80,8 @@ public class BrandsPage extends AbstractPage {
     }
 
     @Override
-    public void onPageExit() {}
+    public void onPageExit() {
+    }
 
     private JButton createPrimaryButton(String text) {
         JButton btn = new JButton(text) {

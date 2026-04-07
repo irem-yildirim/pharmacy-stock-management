@@ -8,7 +8,6 @@ import com.pharmacy.entity.Drug;
 import com.pharmacy.entity.PresType;
 import com.pharmacy.views.DashboardView;
 import com.pharmacy.views.components.MedicineCard;
-import com.pharmacy.views.dialogs.MedicineFormView;
 import static com.pharmacy.views.components.ThemeConstants.*;
 
 import javax.swing.*;
