@@ -32,6 +32,7 @@ import com.pharmacy.controllers.InventoryController;
 import com.pharmacy.entity.Brand;
 import com.pharmacy.entity.Category;
 import com.pharmacy.entity.Drug;
+import com.pharmacy.entity.PresType;
 import com.pharmacy.views.DashboardView;
 import com.pharmacy.views.components.ThemedDialog;
 
@@ -45,9 +46,10 @@ public class MedicineFormView extends JDialog {
     private final Drug medicine; // null = add mode
     private final DashboardView parent;
 
-    private JTextField nameField, doseField, costField, priceField, qtyField, barcodeField, expiryField;
+    private JTextField nameField, costField, priceField, qtyField, barcodeField, expiryField;
     private JComboBox<Category> categoryCombo;
     private JComboBox<Brand> brandCombo;
+    private JComboBox<PresType> presCombo;
 
     public MedicineFormView(DashboardView parent, InventoryController controller, Drug medicine) {
         super(parent, medicine == null ? "Add Medicine" : "Edit Medicine", true);
@@ -55,7 +57,7 @@ public class MedicineFormView extends JDialog {
         this.controller = controller;
         this.medicine = medicine;
 
-        setSize(420, 520);
+        setSize(420, 600);
         setLocationRelativeTo(parent);
         setResizable(false);
         getContentPane().setBackground(BG_WHITE);
@@ -89,7 +91,6 @@ public class MedicineFormView extends JDialog {
 
         barcodeField = addField(form, "Barcode / ID");
         nameField = addField(form, "Medicine Name");
-        doseField = addField(form, "Dose");
         costField = addField(form, "Cost Price");
 
         if (medicine != null) {
@@ -171,11 +172,36 @@ public class MedicineFormView extends JDialog {
         form.add(brandCombo);
         form.add(Box.createVerticalStrut(12));
 
+        form.add(new JLabel("Prescription Type") {
+            {
+                setFont(FONT_LABEL);
+                setForeground(TEXT_PRIMARY);
+            }
+        });
+        form.add(Box.createVerticalStrut(4));
+        presCombo = new JComboBox<>();
+        for (PresType p : controller.getAllPresTypes())
+            presCombo.addItem(p);
+        presCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof PresType)
+                    setText(((PresType) value).getPrescription());
+                return this;
+            }
+        });
+        presCombo.setFont(FONT_BODY);
+        presCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        presCombo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        form.add(presCombo);
+        form.add(Box.createVerticalStrut(12));
+
         if (medicine != null) {
             barcodeField.setText(medicine.getBarcode());
             barcodeField.setEditable(false);
             nameField.setText(medicine.getName());
-            doseField.setText(medicine.getDose());
             costField.setText(medicine.getCostPrice().toString());
             priceField.setText(medicine.getSellingPrice().toString());
             qtyField.setText(String.valueOf(medicine.getStockQuantity()));
@@ -199,6 +225,16 @@ public class MedicineFormView extends JDialog {
                     // NullPointerException Önlemi
                     if (b != null && b.getBrandId() == medicine.getBrand().getBrandId()) {
                         brandCombo.setSelectedIndex(i);
+                        break;
+                    }
+                }
+            }
+
+            if (medicine.getPresType() != null && medicine.getPresType().getPresId() != 0) {
+                for (int i = 0; i < presCombo.getItemCount(); i++) {
+                    PresType p = presCombo.getItemAt(i);
+                    if (p != null && p.getPresId() == medicine.getPresType().getPresId()) {
+                        presCombo.setSelectedIndex(i);
                         break;
                     }
                 }
@@ -274,12 +310,12 @@ public class MedicineFormView extends JDialog {
             Drug d = (medicine == null) ? new Drug() : medicine;
             d.setBarcode(barcodeField.getText().trim());
             d.setName(nameField.getText().trim());
-            d.setDose(doseField.getText().trim());
             d.setCostPrice(new BigDecimal(costField.getText().trim()));
             d.setSellingPrice(new BigDecimal(priceField.getText().trim()));
             d.setStockQuantity(Integer.parseInt(qtyField.getText().trim()));
             d.setCategory((Category) categoryCombo.getSelectedItem());
             d.setBrand((Brand) brandCombo.getSelectedItem());
+            d.setPresType((PresType) presCombo.getSelectedItem());
 
             String expTxt = expiryField.getText().trim();
             if (!expTxt.isEmpty()) {

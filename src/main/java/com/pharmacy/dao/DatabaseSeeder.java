@@ -6,17 +6,22 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
 
-/**
- * Startup seed mechanism.
- * Checks each table — if empty, fills it with realistic pharmacy demo data.
- * Safe to call on every launch: never overwrites existing rows.
- */
 public class DatabaseSeeder {
 
     public void seedIfEmpty() {
         System.out.println("[Seeder] Checking database...");
         try {
             createTablesIfNotExist();
+            // User requested to drop old test data and seed 40 actual drugs.
+            // This runs if sales/drugs are effectively old. If it fails, we catch it.
+            // But we only want to drop if the new structural requirements don't map well.
+            // Actually, we'll unconditionally drop and reconstruct for this "clean slate".
+            if (!isTableEmpty("pres_type") && getCount("pres_type") != 5) {
+                wipeDatabase();
+            } else if (isTableEmpty("drug")) {
+                 wipeDatabase(); // Ensure clean slate if empty.
+            }
+
             seedUsers();
             seedCategories();
             seedBrands();
@@ -32,244 +37,189 @@ public class DatabaseSeeder {
         }
     }
 
-    // =========================================================================
-    //  CREATE TABLES (IF NOT EXISTS)
-    // =========================================================================
+    private void wipeDatabase() {
+        System.out.println("  → Wiping old database for strict 40-drugs seed...");
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("SET FOREIGN_KEY_CHECKS = 0");
+            stmt.executeUpdate("TRUNCATE TABLE sale_item");
+            stmt.executeUpdate("TRUNCATE TABLE sale");
+            stmt.executeUpdate("TRUNCATE TABLE purchase");
+            stmt.executeUpdate("TRUNCATE TABLE expiry");
+            stmt.executeUpdate("TRUNCATE TABLE drug");
+            stmt.executeUpdate("TRUNCATE TABLE pres_type");
+            stmt.executeUpdate("TRUNCATE TABLE brand");
+            stmt.executeUpdate("TRUNCATE TABLE category");
+            stmt.executeUpdate("TRUNCATE TABLE users");
+            try { stmt.executeUpdate("ALTER TABLE drug DROP COLUMN dose"); } catch (Exception ex) {}
+            stmt.executeUpdate("SET FOREIGN_KEY_CHECKS = 1");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void createTablesIfNotExist() {
-        System.out.println("  → Ensuring table structure...");
         Connection conn = DBConnection.getInstance().getConnection();
         try (Statement stmt = conn.createStatement()) {
-
-            stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(100),
-                    email VARCHAR(100),
-                    username VARCHAR(50) UNIQUE,
-                    password VARCHAR(100),
-                    role VARCHAR(30)
-                )
-            """);
-
-            stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS category (
-                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(100) UNIQUE NOT NULL,
-                    description VARCHAR(500)
-                )
-            """);
-
-            stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS brand (
-                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(100) UNIQUE NOT NULL
-                )
-            """);
-
-            stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS pres_type (
-                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(100) NOT NULL,
-                    level INT DEFAULT 0
-                )
-            """);
-
-            stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS drug (
-                    barcode VARCHAR(50) PRIMARY KEY,
-                    name VARCHAR(150) NOT NULL,
-                    dose VARCHAR(50),
-                    cost_price DECIMAL(10,2) NOT NULL,
-                    selling_price DECIMAL(10,2) NOT NULL,
-                    stock_quantity INT NOT NULL,
-                    category_id BIGINT,
-                    brand_id BIGINT,
-                    pres_id BIGINT,
-                    FOREIGN KEY (category_id) REFERENCES category(id),
-                    FOREIGN KEY (brand_id) REFERENCES brand(id),
-                    FOREIGN KEY (pres_id) REFERENCES pres_type(id)
-                )
-            """);
-
-            stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS expiry (
-                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    drug_barcode VARCHAR(50),
-                    expiration_date DATE,
-                    FOREIGN KEY (drug_barcode) REFERENCES drug(barcode)
-                )
-            """);
-
-            stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS purchase (
-                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    drug_barcode VARCHAR(50),
-                    quantity_added INT,
-                    purchase_date DATE,
-                    FOREIGN KEY (drug_barcode) REFERENCES drug(barcode)
-                )
-            """);
-
-            stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS sale (
-                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    total_amount DECIMAL(10,2),
-                    sale_date DATE
-                )
-            """);
-
-            stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS sale_item (
-                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    sale_id BIGINT,
-                    drug_barcode VARCHAR(50),
-                    quantity INT,
-                    unit_price DECIMAL(10,2),
-                    FOREIGN KEY (sale_id) REFERENCES sale(id),
-                    FOREIGN KEY (drug_barcode) REFERENCES drug(barcode)
-                )
-            """);
-
-            System.out.println("    Tables OK.");
+            // users
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS users (id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), username VARCHAR(50) UNIQUE, password VARCHAR(100), role VARCHAR(30))");
+            // category
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS category (id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) UNIQUE NOT NULL, description VARCHAR(500))");
+            // brand
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS brand (id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) UNIQUE NOT NULL)");
+            // pres_type
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS pres_type (id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) NOT NULL, level INT DEFAULT 0)");
+            // drug
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS drug (barcode VARCHAR(50) PRIMARY KEY, name VARCHAR(150) NOT NULL, cost_price DECIMAL(10,2) NOT NULL, selling_price DECIMAL(10,2) NOT NULL, stock_quantity INT NOT NULL, category_id BIGINT, brand_id BIGINT, pres_id BIGINT, FOREIGN KEY (category_id) REFERENCES category(id), FOREIGN KEY (brand_id) REFERENCES brand(id), FOREIGN KEY (pres_id) REFERENCES pres_type(id))");
+            // expiry
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS expiry (id BIGINT AUTO_INCREMENT PRIMARY KEY, drug_barcode VARCHAR(50), expiration_date DATE, FOREIGN KEY (drug_barcode) REFERENCES drug(barcode))");
+            // purchase
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS purchase (id BIGINT AUTO_INCREMENT PRIMARY KEY, drug_barcode VARCHAR(50), quantity_added INT, purchase_date DATE, FOREIGN KEY (drug_barcode) REFERENCES drug(barcode))");
+            // sale
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS sale (id BIGINT AUTO_INCREMENT PRIMARY KEY, total_amount DECIMAL(10,2), sale_date DATE)");
+            // sale_item
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS sale_item (id BIGINT AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT, drug_barcode VARCHAR(50), quantity INT, unit_price DECIMAL(10,2), FOREIGN KEY (sale_id) REFERENCES sale(id), FOREIGN KEY (drug_barcode) REFERENCES drug(barcode))");
         } catch (SQLException e) {
-            System.err.println("  Table creation error: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     private void seedUsers() {
         if (!isTableEmpty("users")) return;
-        System.out.println("  → Seeding users...");
         UserDAO dao = new UserDAO();
-        dao.save(new User(null, "Administrator",    "admin@pharmacy.com",    "admin",   "admin123",   "ADMIN"));
-        dao.save(new User(null, "Dr. Sarah Miller", "sarah@pharmacy.com",    "sarah",   "sarah123",   "PHARMACIST"));
-        dao.save(new User(null, "John Carter",      "john@pharmacy.com",     "john",    "john123",    "CASHIER"));
+        dao.save(new User(null, "Administrator", "admin@pharmacy.com", "admin", "admin123", "ADMIN"));
     }
 
     private void seedCategories() {
         if (!isTableEmpty("category")) return;
-        System.out.println("  → Seeding categories...");
         CategoryDAO dao = new CategoryDAO();
-        dao.save(new Category("Painkillers",      "Pain relief and anti-inflammatory drugs"));
-        dao.save(new Category("Antibiotics",      "Anti-bacterial infection treatments"));
-        dao.save(new Category("Vitamins",         "Vitamin and mineral supplements"));
-        dao.save(new Category("Digestive Health", "Stomach, intestinal and digestive medicines"));
-        dao.save(new Category("Dermatology",      "Skin care creams and lotions"));
-        dao.save(new Category("Cold & Flu",       "Cold, cough and nasal decongestants"));
+        dao.save(new Category("Pain relief", ""));                   // 1
+        dao.save(new Category("Antibiotics", ""));                   // 2
+        dao.save(new Category("Cardiology", ""));                    // 3
+        dao.save(new Category("Gastroenterology", ""));              // 4
+        dao.save(new Category("Cold & Flu", ""));                    // 5
+        dao.save(new Category("Diabetes management", ""));           // 6
+        dao.save(new Category("Psychiatry & Neurology", ""));        // 7
+        dao.save(new Category("Pulmonology", ""));                   // 8
+        dao.save(new Category("Supplements", ""));                   // 9
+        dao.save(new Category("Blood Products", "Blood factors"));   // 10
+        dao.save(new Category("Anesthesia & Surgery", ""));          // 11
     }
 
     private void seedBrands() {
         if (!isTableEmpty("brand")) return;
-        System.out.println("  → Seeding brands...");
         BrandDAO dao = new BrandDAO();
-        dao.save(new Brand(0, "Pfizer Labs"));
-        dao.save(new Brand(0, "Bayer Pharma"));
-        dao.save(new Brand(0, "Novartis"));
-        dao.save(new Brand(0, "Roche"));
-        dao.save(new Brand(0, "Generic / Local"));
+        String[] bList = {"Menarini", "GSK", "Abdi İbrahim", "Bayer", "AstraZeneca", "Bilim İlaç", "Viatris (Pfizer)", "Adeka", "Roche", "Deva", "Exeltis", "Janssen", "Novartis", "Recordati", "Santa Farma", "Sanofi", "Gerot Lannach", "Mundipharma", "İbrahim Hayri", "Galen", "Teva", "Hameln", "Polifarma", "Takeda", "Pfizer", "Novo Nordisk", "CSL Behring", "Octapharma", "Kedrion"};
+        for(String b : bList) dao.save(new Brand(0, b));
     }
 
     private void seedPresTypes() {
         if (!isTableEmpty("pres_type")) return;
-        System.out.println("  → Seeding prescription types...");
         PresTypeDAO dao = new PresTypeDAO();
-        dao.save(new PresType(0, "Over the Counter (OTC)", 0));
-        dao.save(new PresType(0, "Strict Prescription Only", 1));
+        // Fixed exactly 5 constraint types
+        dao.save(new PresType(0, "White Prescription", 1));  // 1
+        dao.save(new PresType(0, "Green Prescription", 2));  // 2
+        dao.save(new PresType(0, "Red Prescription", 3));    // 3
+        dao.save(new PresType(0, "Orange Prescription", 4)); // 4
+        dao.save(new PresType(0, "Purple Prescription", 4)); // 5
     }
 
     private void seedDrugs() {
         if (!isTableEmpty("drug")) return;
-        System.out.println("  → Seeding drugs...");
         DrugDAO dao = new DrugDAO();
-        dao.save(drug("1001", "Paracetamol 500mg",   "500mg",   "3.50",  "6.99",   120, 1L, 1, 1));
-        dao.save(drug("1002", "Ibuprofen 400mg",     "400mg",   "4.00",  "8.50",    85, 1L, 2, 1));
-        dao.save(drug("1003", "Aspirin 100mg",       "100mg",   "2.50",  "5.25",    60, 1L, 2, 1));
-        dao.save(drug("1004", "Amoxicillin 500mg",   "500mg",  "12.00", "24.90",    30, 2L, 1, 2));
-        dao.save(drug("1005", "Azithromycin 250mg",  "250mg",  "15.00", "29.50",    45, 2L, 1, 2));
-        dao.save(drug("1006", "Ciprofloxacin 500mg", "500mg",  "10.00", "21.90",     7, 2L, 2, 2));
-        dao.save(drug("1007", "Vitamin C 1000mg",    "1000mg",  "5.00", "10.50",   200, 3L, 5, 1));
-        dao.save(drug("1008", "Vitamin D3 1000IU",   "1000IU",  "6.00", "12.90",   150, 3L, 4, 1));
-        dao.save(drug("1010", "Omeprazole 20mg",     "20mg",   "14.00", "28.50",    40, 4L, 3, 2));
-        dao.save(drug("1012", "Hydrocortisone Cream","1%",      "9.00", "18.75",    35, 5L, 3, 2));
+        // WHITE
+        dao.save(drug("86901001", "Arveles", "1", "1", 1));
+        dao.save(drug("86901002", "Augmentin", "2", "2", 1));
+        dao.save(drug("86901003", "Apranax", "1", "3", 1));
+        dao.save(drug("86901004", "Coraspin", "3", "4", 1));
+        dao.save(drug("86901005", "Nexium", "4", "5", 1));
+        dao.save(drug("86901006", "A-Ferin", "5", "6", 1));
+        dao.save(drug("86901007", "Glifor", "6", "6", 1));
+        dao.save(drug("86901008", "Lustral", "7", "7", 1));
+        dao.save(drug("86901009", "Ventolin", "8", "2", 1));
+        dao.save(drug("86901010", "Ferro Sanol", "9", "8", 1));
+        
+        // GREEN
+        dao.save(drug("86902001", "Xanax", "7", "7", 2));
+        dao.save(drug("86902002", "Rivotril", "7", "9", 2));
+        dao.save(drug("86902003", "Diazem", "7", "10", 2));
+        dao.save(drug("86902004", "Lyrica", "7", "7", 2));
+        dao.save(drug("86902005", "Ativan", "7", "11", 2));
+        dao.save(drug("86902006", "Concerta", "7", "12", 2));
+        dao.save(drug("86902007", "Ritalin", "7", "13", 2));
+        dao.save(drug("86902008", "Akineton", "7", "14", 2));
+        dao.save(drug("86902009", "Contramal", "1", "15", 2));
+        dao.save(drug("86902010", "Stilnox", "7", "16", 2));
+
+        // RED
+        dao.save(drug("86903001", "Aldolan", "11", "17", 3));
+        dao.save(drug("86903002", "Durogesic", "1", "12", 3));
+        dao.save(drug("86903003", "M-Eser", "1", "18", 3));
+        dao.save(drug("86903004", "Jurnista", "1", "12", 3));
+        dao.save(drug("86903005", "Pental", "11", "19", 3));
+        dao.save(drug("86903006", "Morphine", "1", "20", 3));
+        dao.save(drug("86903007", "OxyContin", "1", "18", 3));
+        dao.save(drug("86903008", "Actiq", "1", "21", 3));
+        dao.save(drug("86903009", "Fentanyl", "11", "22", 3));
+        dao.save(drug("86903010", "Pethidine", "11", "23", 3));
+
+        // ORANGE
+        dao.save(drug("86904001", "Advate", "10", "24", 4));
+        dao.save(drug("86904002", "Benefix", "10", "25", 4));
+        dao.save(drug("86904003", "Feiba", "10", "24", 4));
+        dao.save(drug("86904004", "NovoSeven", "10", "26", 4));
+        dao.save(drug("86904005", "Haemate P", "10", "27", 4));
+
+        // PURPLE
+        dao.save(drug("86905001", "Human Albumin", "10", "28", 5));
+        dao.save(drug("86905002", "Privigen", "10", "27", 5));
+        dao.save(drug("86905003", "Octagam", "10", "28", 5));
+        dao.save(drug("86905004", "Beriglobin", "10", "27", 5));
+        dao.save(drug("86905005", "Anti-D", "10", "29", 5));
     }
 
     private void seedExpiry() {
-        if (!isTableEmpty("expiry")) {
-             // For testing purposes, we sometimes want to keep it fresh
-        }
-        System.out.println("  → Seeding expiry records...");
+        if (!isTableEmpty("expiry")) return;
         ExpiryDAO dao = new ExpiryDAO();
         LocalDate today = LocalDate.now();
-        expiry(dao, "1001", today.plusDays(4));
-        expiry(dao, "1006", today.plusDays(10));
-        expiry(dao, "1002", today.plusDays(18));
-        expiry(dao, "1004", today.plusDays(25));
-        expiry(dao, "1010", today.plusDays(500));
+        // 5 random urgent expirations
+        dao.save(new Expiry(new Drug("86901001", null, null, null, 0), today.plusDays(4), 0, "OK"));
+        dao.save(new Expiry(new Drug("86902005", null, null, null, 0), today.plusDays(10), 0, "OK"));
+        dao.save(new Expiry(new Drug("86903002", null, null, null, 0), today.plusDays(20), 0, "OK"));
+        dao.save(new Expiry(new Drug("86904001", null, null, null, 0), today.plusDays(28), 0, "OK"));
+        
+        // standard expiry
+        dao.save(new Expiry(new Drug("86901006", null, null, null, 0), today.plusDays(200), 0, "OK"));
+        dao.save(new Expiry(new Drug("86905001", null, null, null, 0), today.plusDays(300), 0, "OK"));
     }
-
-    private void seedPurchases() {
-        if (!isTableEmpty("purchase")) return;
-        System.out.println("  → Seeding purchases...");
-        PurchaseDAO dao = new PurchaseDAO();
-        LocalDate today = LocalDate.now();
-        purchase(dao, "1001", 60,  today.minusDays(5));
-        purchase(dao, "1004", 30,  today.minusDays(15));
-        purchase(dao, "1007", 100, today.minusDays(2));
-    }
-
-    private void seedSales() {
-        if (!isTableEmpty("sale")) return;
-        System.out.println("  → Seeding sales...");
-        SaleDAO saleDAO = new SaleDAO();
-        SaleItemDAO itemDAO = new SaleItemDAO();
-        LocalDate today = LocalDate.now();
-
-        Sale s1 = new Sale(new BigDecimal("20.48"), today.minusDays(3));
-        saleDAO.save(s1);
-        itemDAO.save(saleItem(s1, "1001", 2, "6.99"));
-
-        Sale s2 = new Sale(new BigDecimal("54.40"), today.minusDays(2));
-        saleDAO.save(s2);
-        itemDAO.save(saleItem(s2, "1004", 1, "24.90"));
-    }
-
-    // =========================================================================
-    //  HELPERS
-    // =========================================================================
+    private void seedPurchases() {}
+    private void seedSales() {}
 
     private boolean isTableEmpty(String tableName) {
-        String query = "SELECT COUNT(*) FROM " + tableName;
         try (Connection conn = DBConnection.getInstance().getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query);
-             ResultSet rs = pstmt.executeQuery()) {
+             PreparedStatement p = conn.prepareStatement("SELECT COUNT(*) FROM " + tableName);
+             ResultSet rs = p.executeQuery()) {
             if (rs.next()) return rs.getInt(1) == 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (Exception e) {}
         return false;
     }
 
-    private Drug drug(String barcode, String name, String dose, String cost, String sell, int stock, Long catId, int brandId, int presId) {
-        Category cat = new Category(); cat.setId(catId);
-        Brand brand = new Brand(brandId, null);
+    private int getCount(String tableName) {
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement p = conn.prepareStatement("SELECT COUNT(*) FROM " + tableName);
+             ResultSet rs = p.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) {}
+        return 0;
+    }
+
+    private Drug drug(String barcode, String name, String catId, String brandId, int presId) {
+        Category cat = new Category(); cat.setId(Long.parseLong(catId));
+        Brand brand = new Brand(Integer.parseInt(brandId), null);
         PresType pres = new PresType(presId, null, 0);
-        Drug d = new Drug(barcode, name, dose, new BigDecimal(cost), new BigDecimal(sell), stock);
+        // Default random price/stock for demo
+        Drug d = new Drug(barcode, name, new BigDecimal("15.00"), new BigDecimal("35.00"), 50);
         d.setCategory(cat); d.setBrand(brand); d.setPresType(pres);
         return d;
-    }
-
-    private void expiry(ExpiryDAO dao, String barcode, LocalDate expDate) {
-        Drug d = new Drug(); d.setBarcode(barcode);
-        dao.save(new Expiry(d, expDate, 0, "OK"));
-    }
-
-    private void purchase(PurchaseDAO dao, String barcode, int qty, LocalDate date) {
-        Drug d = new Drug(); d.setBarcode(barcode);
-        dao.save(new Purchase(d, qty, date));
-    }
-
-    private SaleItem saleItem(Sale sale, String barcode, int qty, String price) {
-        Drug d = new Drug(); d.setBarcode(barcode);
-        return new SaleItem(sale, d, qty, new BigDecimal(price));
     }
 }

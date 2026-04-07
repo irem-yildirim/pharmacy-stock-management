@@ -21,6 +21,7 @@ public class PurchaseDialog extends JDialog {
 
     private JComboBox<Drug> medicineCombo;
     private JSpinner quantitySpinner;
+    private JLabel totalLabel;
 
     public PurchaseDialog(DashboardView parent, TransactionController transC, InventoryController invC, int brandId) {
         super(parent, "Purchase Stock", true);
@@ -29,7 +30,7 @@ public class PurchaseDialog extends JDialog {
         this.inventoryController = invC;
         this.presetBrandId = brandId;
 
-        setSize(380, 250);
+        setSize(380, 400);
         setLocationRelativeTo(parent);
         setResizable(false);
         getContentPane().setBackground(BG_WHITE);
@@ -100,14 +101,37 @@ public class PurchaseDialog extends JDialog {
         quantitySpinner.setFont(FONT_BODY);
         quantitySpinner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         quantitySpinner.setAlignmentX(Component.LEFT_ALIGNMENT);
+        quantitySpinner.addChangeListener(e -> updateTotal());
         form.add(quantitySpinner);
+        form.add(Box.createVerticalStrut(16));
+
+        totalLabel = new JLabel("Total: 0.00 TL");
+        totalLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        totalLabel.setForeground(DANGER); // Gider olduğu için kırmızımsı
+        totalLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        form.add(totalLabel);
         
         if(brandDrugs.isEmpty()) {
             medicineCombo.setEnabled(false);
             quantitySpinner.setEnabled(false);
+        } else {
+            medicineCombo.addActionListener(e -> updateTotal());
+            updateTotal();
         }
 
         return form;
+    }
+
+    private void updateTotal() {
+        Object selected = medicineCombo.getSelectedItem();
+        if (selected instanceof Drug) {
+            Drug d = (Drug) selected;
+            int qty = (int) quantitySpinner.getValue();
+            java.math.BigDecimal total = d.getCostPrice().multiply(java.math.BigDecimal.valueOf(qty));
+            totalLabel.setText(String.format("Total: %.2f TL", total.doubleValue()));
+        } else {
+            totalLabel.setText("Total: 0.00 TL");
+        }
     }
 
     private JPanel buildFooter() {

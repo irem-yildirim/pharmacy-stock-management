@@ -16,61 +16,12 @@ public class DrugDAO implements BaseDAO<Drug, String> {
 
     @Override
     public void save(Drug drug) {
-        String query = "INSERT INTO drug (barcode, name, dose, cost_price, selling_price, stock_quantity, category_id, brand_id, pres_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String query = "INSERT INTO drug (barcode, name, cost_price, selling_price, stock_quantity, category_id, brand_id, pres_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(query)) {
 
             pstmt.setString(1, drug.getBarcode());
             pstmt.setString(2, drug.getName());
-            pstmt.setString(3, drug.getDose());
-            pstmt.setBigDecimal(4, drug.getCostPrice());
-            pstmt.setBigDecimal(5, drug.getSellingPrice());
-            pstmt.setInt(6, drug.getStockQuantity());
-
-            if (drug.getCategory() != null && drug.getCategory().getId() != null) {
-                pstmt.setLong(7, drug.getCategory().getId());
-            } else {
-                pstmt.setNull(7, Types.BIGINT);
-            }
-
-            if (drug.getBrand() != null && drug.getBrand().getBrandId() != 0) {
-                pstmt.setLong(8, drug.getBrand().getBrandId());
-            } else {
-                pstmt.setNull(8, Types.BIGINT);
-            }
-
-            if (drug.getPresType() != null && drug.getPresType().getPresId() != 0) {
-                pstmt.setLong(9, drug.getPresType().getPresId());
-            } else {
-                pstmt.setNull(9, Types.BIGINT);
-            }
-
-            // 1. İlaç drug tablosuna eklenir
-            pstmt.executeUpdate();
-
-            // 2.Tarihi expiry tablosuna ekle
-            if (drug.getExpiry() != null && drug.getExpiry().getExpirationDate() != null) {
-                String expiryQuery = "INSERT INTO expiry (drug_barcode, expiration_date) VALUES (?, ?)";
-                try (PreparedStatement pstmtExpiry = conn.prepareStatement(expiryQuery)) {
-                    pstmtExpiry.setString(1, drug.getBarcode());
-                    pstmtExpiry.setDate(2, java.sql.Date.valueOf(drug.getExpiry().getExpirationDate()));
-                    pstmtExpiry.executeUpdate(); // Tarih veritabanına işleni
-                }
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void update(Drug drug) {
-        String query = "UPDATE drug SET name=?, dose=?, cost_price=?, selling_price=?, stock_quantity=?, category_id=?, brand_id=?, pres_id=? WHERE barcode=?";
-        try (Connection conn = DBConnection.getInstance().getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(query)) {
-
-            pstmt.setString(1, drug.getName());
-            pstmt.setString(2, drug.getDose());
             pstmt.setBigDecimal(3, drug.getCostPrice());
             pstmt.setBigDecimal(4, drug.getSellingPrice());
             pstmt.setInt(5, drug.getStockQuantity());
@@ -93,7 +44,54 @@ public class DrugDAO implements BaseDAO<Drug, String> {
                 pstmt.setNull(8, Types.BIGINT);
             }
 
-            pstmt.setString(9, drug.getBarcode());
+            // 1. İlaç drug tablosuna eklenir
+            pstmt.executeUpdate();
+
+            // 2.Tarihi expiry tablosuna ekle
+            if (drug.getExpiry() != null && drug.getExpiry().getExpirationDate() != null) {
+                String expiryQuery = "INSERT INTO expiry (drug_barcode, expiration_date) VALUES (?, ?)";
+                try (PreparedStatement pstmtExpiry = conn.prepareStatement(expiryQuery)) {
+                    pstmtExpiry.setString(1, drug.getBarcode());
+                    pstmtExpiry.setDate(2, java.sql.Date.valueOf(drug.getExpiry().getExpirationDate()));
+                    pstmtExpiry.executeUpdate(); // Tarih veritabanına işleni
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void update(Drug drug) {
+        String query = "UPDATE drug SET name=?, cost_price=?, selling_price=?, stock_quantity=?, category_id=?, brand_id=?, pres_id=? WHERE barcode=?";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setString(1, drug.getName());
+            pstmt.setBigDecimal(2, drug.getCostPrice());
+            pstmt.setBigDecimal(3, drug.getSellingPrice());
+            pstmt.setInt(4, drug.getStockQuantity());
+
+            if (drug.getCategory() != null && drug.getCategory().getId() != null) {
+                pstmt.setLong(5, drug.getCategory().getId());
+            } else {
+                pstmt.setNull(5, Types.BIGINT);
+            }
+
+            if (drug.getBrand() != null && drug.getBrand().getBrandId() != 0) {
+                pstmt.setLong(6, drug.getBrand().getBrandId());
+            } else {
+                pstmt.setNull(6, Types.BIGINT);
+            }
+
+            if (drug.getPresType() != null && drug.getPresType().getPresId() != 0) {
+                pstmt.setLong(7, drug.getPresType().getPresId());
+            } else {
+                pstmt.setNull(7, Types.BIGINT);
+            }
+
+            pstmt.setString(8, drug.getBarcode());
 
             pstmt.executeUpdate();
         } catch (SQLException e) {
@@ -179,7 +177,6 @@ public class DrugDAO implements BaseDAO<Drug, String> {
         Drug drug = new Drug();
         drug.setBarcode(rs.getString("barcode"));
         drug.setName(rs.getString("name"));
-        drug.setDose(rs.getString("dose"));
         drug.setCostPrice(rs.getBigDecimal("cost_price"));
         drug.setSellingPrice(rs.getBigDecimal("selling_price"));
         drug.setStockQuantity(rs.getInt("stock_quantity"));

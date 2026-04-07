@@ -79,7 +79,7 @@ public class SellDrugDialog extends JDialog {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 if (value instanceof Drug) {
                     Drug m = (Drug) value;
-                    setText(m.getName() + " (" + m.getDose() + ") - Stock: " + m.getStockQuantity());
+                    setText(m.getName() + " - Stock: " + m.getStockQuantity());
                 }
                 return this;
             }

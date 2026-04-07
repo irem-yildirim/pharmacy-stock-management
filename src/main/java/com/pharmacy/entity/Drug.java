@@ -6,7 +6,6 @@ import java.util.List;
 public class Drug {
     private String barcode;
     private String name;
-    private String dose;
     private BigDecimal costPrice;
     private BigDecimal sellingPrice;
     private int stockQuantity;
@@ -20,11 +19,10 @@ public class Drug {
 
     public Drug() {}
 
-    public Drug(String barcode, String name, String dose,
+    public Drug(String barcode, String name, 
             BigDecimal costPrice, BigDecimal sellingPrice, int stockQuantity) {
         this.barcode = barcode;
         this.name = name;
-        this.dose = dose;
         this.costPrice = costPrice;
         this.sellingPrice = sellingPrice;
         this.stockQuantity = stockQuantity;
@@ -34,8 +32,6 @@ public class Drug {
     public void setBarcode(String barcode) { this.barcode = barcode; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    public String getDose() { return dose; }
-    public void setDose(String dose) { this.dose = dose; }
     public BigDecimal getCostPrice() { return costPrice; }
     public void setCostPrice(BigDecimal costPrice) { this.costPrice = costPrice; }
     public BigDecimal getSellingPrice() { return sellingPrice; }

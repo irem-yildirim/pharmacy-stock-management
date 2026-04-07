@@ -87,11 +87,11 @@ public class HomePage extends AbstractPage {
         gbc.gridy = 1;
         gbc.gridwidth = 1;
         gbc.weighty = 1.0;
-        gbc.weightx = 0.6;
+        gbc.weightx = 0.5;
         homeWidgetsRow.add(buildExpiryWidget(all), gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.4;
+        gbc.weightx = 0.5;
         homeWidgetsRow.add(buildLowStockWidget(all), gbc);
 
         gbc.gridx = 0;
@@ -154,6 +154,7 @@ public class HomePage extends AbstractPage {
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
+        scroll.getVerticalScrollBar().setUnitIncrement(30); // Kaydırma hızını artır
         widget.add(scroll, BorderLayout.CENTER);
         return widget;
     }

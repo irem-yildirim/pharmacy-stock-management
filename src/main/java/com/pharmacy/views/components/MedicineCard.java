@@ -21,6 +21,7 @@ public class MedicineCard extends JPanel {
 
     private final ExpiryMode mode;
     private boolean isHovered = false;
+    private final Color badgeColor;
 
     public MedicineCard(Drug drug, String brandName, String presType, Consumer<Drug> onUpdate) {
         this(drug, brandName, presType, ExpiryMode.EXPIRY_SAFE, onUpdate);
@@ -29,6 +30,19 @@ public class MedicineCard extends JPanel {
     public MedicineCard(Drug drug, String brandName, String presType, ExpiryMode mode,
             Consumer<Drug> onUpdate) {
         this.mode = mode;
+
+        if (presType == null) presType = "";
+        if (presType.contains("Green")) {
+            this.badgeColor = new Color(76, 175, 80);
+        } else if (presType.contains("Red")) {
+            this.badgeColor = new Color(244, 67, 54);
+        } else if (presType.contains("Orange")) {
+            this.badgeColor = new Color(255, 152, 0);
+        } else if (presType.contains("Purple")) {
+            this.badgeColor = new Color(156, 39, 176);
+        } else {
+            this.badgeColor = new Color(189, 189, 189); // Default Light Gray
+        }
 
         setLayout(new BorderLayout(10, 8));
         setOpaque(false);
@@ -57,20 +71,15 @@ public class MedicineCard extends JPanel {
             }
         });
 
-        // Top: Name + Dose
+        // Top: Name
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
 
         JLabel nameLabel = new JLabel(drug.getName());
-        nameLabel.setFont(FONT_HEADER);
+        nameLabel.setFont(new Font("SansSerif", Font.PLAIN, 15));
         nameLabel.setForeground(TEXT_PRIMARY);
 
-        JLabel doseLabel = new JLabel(drug.getDose() != null ? drug.getDose() : "");
-        doseLabel.setFont(FONT_SMALL);
-        doseLabel.setForeground(TEXT_SECONDARY);
-
         top.add(nameLabel, BorderLayout.NORTH);
-        top.add(doseLabel, BorderLayout.SOUTH);
 
         // Center: Brand + PresType
         JPanel center = new JPanel();
@@ -144,6 +153,12 @@ public class MedicineCard extends JPanel {
             g2.setColor(new Color(220, 220, 220));
         }
         g2.drawRoundRect(0, 0, getWidth() - 2, getHeight() - 2, CARD_RADIUS, CARD_RADIUS);
+
+        // Prescription Type Badge
+        if (badgeColor != null) {
+            g2.setColor(badgeColor);
+            g2.fillOval(getWidth() - 18, 12, 10, 10);
+        }
 
         g2.dispose();
         super.paintComponent(g);

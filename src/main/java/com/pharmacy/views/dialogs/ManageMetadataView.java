@@ -3,7 +3,6 @@ package com.pharmacy.views.dialogs;
 import com.pharmacy.controllers.InventoryController;
 import com.pharmacy.entity.Brand;
 import com.pharmacy.entity.Category;
-import com.pharmacy.entity.PresType;
 import com.pharmacy.views.DashboardView;
 import com.pharmacy.views.components.ThemedDialog;
 import static com.pharmacy.views.components.ThemeConstants.*;
@@ -18,11 +17,8 @@ public class ManageMetadataView extends JFrame {
     
     private DefaultListModel<Brand> brandModel;
     private DefaultListModel<Category> catModel;
-    private DefaultListModel<PresType> presModel;
-    
     private JList<Brand> brandList;
     private JList<Category> catList;
-    private JList<PresType> presList;
 
     public ManageMetadataView(DashboardView parent, InventoryController controller) {
         this.controller = controller;
@@ -46,21 +42,35 @@ public class ManageMetadataView extends JFrame {
         
         add(titlePanel, BorderLayout.NORTH);
 
-        JPanel centerPanel = new JPanel(new GridLayout(1, 3, 10, 10));
+        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 10, 10));
         centerPanel.setOpaque(false);
         centerPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         brandModel = new DefaultListModel<>();
         catModel = new DefaultListModel<>();
-        presModel = new DefaultListModel<>();
 
         brandList = createStyledList(brandModel);
+        brandList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Brand) setText(((Brand) value).getBrandName());
+                return this;
+            }
+        });
+
         catList = createStyledList(catModel);
-        presList = createStyledList(presModel);
+        catList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Category) setText(((Category) value).getName());
+                return this;
+            }
+        });
 
         centerPanel.add(createColumn("Brands", brandList, () -> deleteSelectedBrand()));
         centerPanel.add(createColumn("Categories", catList, () -> deleteSelectedCategory()));
-        centerPanel.add(createColumn("Prescription Types", presList, null));
 
         add(centerPanel, BorderLayout.CENTER);
     }
@@ -99,11 +109,6 @@ public class ManageMetadataView extends JFrame {
         catModel.clear();
         for(Category c : controller.getAllCategories()) {
             catModel.addElement(c);
-        }
-
-        presModel.clear();
-        for(PresType p : controller.getAllPresTypes()) {
-            presModel.addElement(p);
         }
     }
 
