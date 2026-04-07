@@ -1,6 +1,6 @@
 package com.pharmacy.dao;
 
-import com.pharmacy.models.Brand;
+import com.pharmacy.entity.Brand;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;

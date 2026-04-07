@@ -6,10 +6,6 @@ import javax.swing.SwingWorker;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * Controller class to handle Login view actions.
- * Integrates SwingWorker to prevent UI freezing.
- */
 public class LoginController {
 
     private final UserService userService;
@@ -20,7 +16,7 @@ public class LoginController {
         this.medicineController = medicineController;
     }
 
-    // SwingWorker ile Asenkron Login
+    //  Login
     public void loginAsync(String username, String password, Consumer<Boolean> callback) {
         new SwingWorker<Boolean, Void>() {
             @Override
@@ -43,7 +39,7 @@ public class LoginController {
         }.execute();
     }
 
-    // Senkron Login (boolean doğrudan döner)
+    //  Login (boolean)
     public boolean login(String username, String password) {
         try {
             return userService.authenticate(username, password);
@@ -52,7 +48,7 @@ public class LoginController {
         }
     }
 
-    // Backend entity.User listesini döner
+    // Backend.User listesini döndürür.
     public List<User> getAllUsers() {
         return userService.getAllUsers();
     }

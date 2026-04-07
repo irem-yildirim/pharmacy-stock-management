@@ -1,29 +1,62 @@
 package com.pharmacy.views;
 
-import com.pharmacy.controllers.MedicineController;
-import com.pharmacy.models.*;
+import static com.pharmacy.views.ThemeConstants.ACCENT;
+import static com.pharmacy.views.ThemeConstants.ACCENT_DARK;
+import static com.pharmacy.views.ThemeConstants.ACCENT_HOVER;
+import static com.pharmacy.views.ThemeConstants.BG_CARD;
+import static com.pharmacy.views.ThemeConstants.BG_WHITE;
+import static com.pharmacy.views.ThemeConstants.FONT_BODY;
+import static com.pharmacy.views.ThemeConstants.FONT_HEADER;
+import static com.pharmacy.views.ThemeConstants.FONT_LABEL;
+import static com.pharmacy.views.ThemeConstants.SIDEBAR_BG;
+import static com.pharmacy.views.ThemeConstants.TEXT_PRIMARY;
 
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.math.BigDecimal;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.util.List;
 
-import static com.pharmacy.views.ThemeConstants.*;
+import com.pharmacy.controllers.MedicineController;
+import com.pharmacy.entity.Brand;
+import com.pharmacy.entity.Category;
+import com.pharmacy.entity.Drug;
 
 /**
- * Modal dialog form for adding or editing a Medicine.
+ * Yeni ilaç ekleme veya mevcut olanı güncelleme ekranı.
+ * Ana pencerenin üzerine açılan (Modal) temiz bir form yapısı.
  */
 public class MedicineFormView extends JDialog {
 
     private final MedicineController controller;
-    private final Medicine medicine; // null = add mode
+    private final Drug medicine; // null = add mode
     private final DashboardView parent;
 
     private JTextField nameField, doseField, costField, priceField, qtyField, barcodeField;
-    private JComboBox<MedicineCategory> categoryCombo;
+    private JComboBox<Category> categoryCombo;
     private JComboBox<Brand> brandCombo;
 
-    public MedicineFormView(DashboardView parent, MedicineController controller, Medicine medicine) {
+    public MedicineFormView(DashboardView parent, MedicineController controller, Drug medicine) {
         super(parent, medicine == null ? "Add Medicine" : "Edit Medicine", true);
         this.parent = parent;
         this.controller = controller;
@@ -46,8 +79,8 @@ public class MedicineFormView extends JDialog {
         header.setPreferredSize(new Dimension(0, 52));
         header.setBorder(new EmptyBorder(0, 18, 0, 18));
 
-        String title = medicine == null ? "\uD83D\uDC8A Add New Medicine"
-                : "\u270F\uFE0F Edit: " + medicine.getMedName();
+        String title = medicine == null ? "💊 Add New Medicine"
+                : "📝 Edit: " + medicine.getName();
         JLabel lbl = new JLabel(title);
         lbl.setFont(FONT_LABEL);
         lbl.setForeground(Color.WHITE);
@@ -65,72 +98,75 @@ public class MedicineFormView extends JDialog {
         nameField = addField(form, "Medicine Name");
         doseField = addField(form, "Dose");
         costField = addField(form, "Cost Price");
-        
+
         if (medicine != null) {
-            // Quick Update Box for Price & Stock
             JPanel quickPanel = new JPanel();
             quickPanel.setLayout(new BoxLayout(quickPanel, BoxLayout.Y_AXIS));
             quickPanel.setBackground(BG_CARD);
             quickPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ACCENT, 1, true),
-                new EmptyBorder(12, 16, 4, 16)
-            ));
+                    BorderFactory.createLineBorder(ACCENT, 1, true),
+                    new EmptyBorder(12, 16, 4, 16)));
             quickPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            
+
             JLabel quickLabel = new JLabel("⚡ Quick Update");
             quickLabel.setFont(FONT_HEADER);
             quickLabel.setForeground(ACCENT_DARK);
             quickPanel.add(quickLabel);
             quickPanel.add(Box.createVerticalStrut(10));
-            
+
             priceField = addField(quickPanel, "Selling Price");
-            qtyField = addField(quickPanel, "Quantity");
-            
+            qtyField = addField(quickPanel, "Stock Quantity");
+
             form.add(quickPanel);
             form.add(Box.createVerticalStrut(12));
         } else {
             priceField = addField(form, "Selling Price");
-            qtyField = addField(form, "Quantity");
+            qtyField = addField(form, "Stock Quantity");
         }
 
-        // Category combo
-        JLabel catLabel = new JLabel("Category");
-        catLabel.setFont(FONT_LABEL);
-        catLabel.setForeground(TEXT_PRIMARY);
-        catLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        form.add(catLabel);
+        form.add(new JLabel("Category") {
+            {
+                setFont(FONT_LABEL);
+                setForeground(TEXT_PRIMARY);
+            }
+        });
         form.add(Box.createVerticalStrut(4));
-
         categoryCombo = new JComboBox<>();
-        List<MedicineCategory> cats = controller.getAllCategories();
-        for (MedicineCategory c : cats)
+        for (Category c : controller.getAllCategories())
             categoryCombo.addItem(c);
         categoryCombo.setFont(FONT_BODY);
         categoryCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         categoryCombo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        categoryCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Category)
+                    setText(((Category) value).getName());
+                return this;
+            }
+        });
         form.add(categoryCombo);
         form.add(Box.createVerticalStrut(12));
 
-        // Brand combo
-        JLabel brandLabel = new JLabel("Brand");
-        brandLabel.setFont(FONT_LABEL);
-        brandLabel.setForeground(TEXT_PRIMARY);
-        brandLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        form.add(brandLabel);
+        form.add(new JLabel("Brand") {
+            {
+                setFont(FONT_LABEL);
+                setForeground(TEXT_PRIMARY);
+            }
+        });
         form.add(Box.createVerticalStrut(4));
-
         brandCombo = new JComboBox<>();
-        List<Brand> brands = controller.getAllBrands();
-        for (Brand b : brands) {
+        for (Brand b : controller.getAllBrands())
             brandCombo.addItem(b);
-        }
         brandCombo.setRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof Brand) {
+                if (value instanceof Brand)
                     setText(((Brand) value).getBrandName());
-                }
                 return this;
             }
         });
@@ -140,25 +176,24 @@ public class MedicineFormView extends JDialog {
         form.add(brandCombo);
         form.add(Box.createVerticalStrut(12));
 
-        // Populate if editing
         if (medicine != null) {
-            barcodeField.setText(String.valueOf(medicine.getMedId()));
+            barcodeField.setText(medicine.getBarcode());
             barcodeField.setEditable(false);
-            nameField.setText(medicine.getMedName());
+            nameField.setText(medicine.getName());
             doseField.setText(medicine.getDose());
-            costField.setText(String.valueOf(medicine.getCost()));
-            priceField.setText(String.valueOf(medicine.getPrice()));
-            qtyField.setText(String.valueOf(medicine.getQuantity()));
+            costField.setText(medicine.getCostPrice().toString());
+            priceField.setText(medicine.getSellingPrice().toString());
+            qtyField.setText(String.valueOf(medicine.getStockQuantity()));
 
             for (int i = 0; i < categoryCombo.getItemCount(); i++) {
-                if (categoryCombo.getItemAt(i).getCatId() == medicine.getCatId()) {
+                if (categoryCombo.getItemAt(i).getId().equals(medicine.getCategory().getId())) {
                     categoryCombo.setSelectedIndex(i);
                     break;
                 }
             }
 
             for (int i = 0; i < brandCombo.getItemCount(); i++) {
-                if (brandCombo.getItemAt(i).getBrandId() == medicine.getBrandId()) {
+                if (brandCombo.getItemAt(i).getBrandId() == medicine.getBrand().getBrandId()) {
                     brandCombo.setSelectedIndex(i);
                     break;
                 }
@@ -179,7 +214,6 @@ public class MedicineFormView extends JDialog {
         lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.add(lbl);
         form.add(Box.createVerticalStrut(4));
-
         JTextField field = new JTextField();
         field.setFont(FONT_BODY);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
@@ -196,11 +230,9 @@ public class MedicineFormView extends JDialog {
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 10));
         footer.setBackground(new Color(248, 248, 248));
         footer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(225, 225, 225)));
-
         JButton cancelBtn = new JButton("Cancel");
         cancelBtn.setFont(FONT_BODY);
         cancelBtn.addActionListener(e -> dispose());
-
         JButton saveBtn = new JButton(medicine == null ? "Add" : "Save") {
             @Override
             protected void paintComponent(Graphics g) {
@@ -216,7 +248,6 @@ public class MedicineFormView extends JDialog {
         saveBtn.setForeground(Color.WHITE);
         saveBtn.setContentAreaFilled(false);
         saveBtn.setBorderPainted(false);
-        saveBtn.setFocusPainted(false);
         saveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         saveBtn.setBorder(new EmptyBorder(7, 20, 7, 20));
         saveBtn.addActionListener(e -> handleSave());
@@ -228,7 +259,6 @@ public class MedicineFormView extends JDialog {
             deleteBtn.addActionListener(e -> handleDelete());
             footer.add(deleteBtn);
         }
-
         footer.add(cancelBtn);
         footer.add(saveBtn);
         return footer;
@@ -236,49 +266,34 @@ public class MedicineFormView extends JDialog {
 
     private void handleSave() {
         try {
-            Medicine med = new Medicine();
-            med.setMedId(Integer.parseInt(barcodeField.getText().trim()));
-            med.setMedName(nameField.getText().trim());
-            med.setDose(doseField.getText().trim());
-            med.setCost(Double.parseDouble(costField.getText().trim()));
-            med.setPrice(Double.parseDouble(priceField.getText().trim()));
-            med.setQuantity(Integer.parseInt(qtyField.getText().trim()));
+            Drug d = (medicine == null) ? new Drug() : medicine;
+            d.setBarcode(barcodeField.getText().trim());
+            d.setName(nameField.getText().trim());
+            d.setDose(doseField.getText().trim());
+            d.setCostPrice(new BigDecimal(costField.getText().trim()));
+            d.setSellingPrice(new BigDecimal(priceField.getText().trim()));
+            d.setStockQuantity(Integer.parseInt(qtyField.getText().trim()));
+            d.setCategory((Category) categoryCombo.getSelectedItem());
+            d.setBrand((Brand) brandCombo.getSelectedItem());
 
-            MedicineCategory selectedCat = (MedicineCategory) categoryCombo.getSelectedItem();
-            if (selectedCat != null)
-                med.setCatId(selectedCat.getCatId());
-
-            Brand selectedBrand = (Brand) brandCombo.getSelectedItem();
-            if (selectedBrand != null)
-                med.setBrandId(selectedBrand.getBrandId());
-
-            med.setPresId(1); // Defaulting presId unless explicitly requested to be a combo too
-
-            boolean success;
             if (medicine == null) {
-                success = controller.addMedicine(med);
+                controller.addMedicine(d);
             } else {
-                success = controller.updateMedicine(med);
+                controller.updateMedicine(d);
             }
-
-            if (success) {
-                ThemedDialog.showMessage(this, medicine == null ? "Medicine added!" : "Medicine updated!",
-                        ThemedDialog.Kind.SUCCESS);
-                dispose();
-                parent.loadTableData();
-            }
-        } catch (NumberFormatException ex) {
-            ThemedDialog.showMessage(this, "Please enter valid numbers for price, cost and quantity.",
-                    ThemedDialog.Kind.ERROR);
+            ThemedDialog.showMessage(this, "Success!", ThemedDialog.Kind.SUCCESS);
+            dispose();
+            parent.loadTableData();
+        } catch (Exception ex) {
+            ThemedDialog.showMessage(this, "Valid numerical values required.", ThemedDialog.Kind.ERROR);
         }
     }
 
     private void handleDelete() {
-        int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this medicine?", "Confirm",
-                JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
-            controller.deleteMedicine(medicine.getMedId());
-            ThemedDialog.showMessage(this, "Medicine deleted.", ThemedDialog.Kind.SUCCESS);
+        if (JOptionPane.showConfirmDialog(this, "Delete this item?", "Confirm",
+                JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            controller.deleteMedicine(medicine.getBarcode());
+            ThemedDialog.showMessage(this, "Deleted.", ThemedDialog.Kind.SUCCESS);
             dispose();
             parent.loadTableData();
         }

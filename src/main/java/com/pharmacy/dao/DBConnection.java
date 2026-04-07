@@ -5,10 +5,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
- * Singleton DB connection manager.
- * getConnection() always returns a valid, open connection.
- * If the previous connection was closed (e.g. by try-with-resources in DAOs),
- * a fresh one is created transparently.
+ * Veritabanı bağlantı yönetimi.
+ * Her seferinde yeni bağlantı açıp sistemi yormamak için
+ * Singleton tasarım desenini tercih ettik.
  */
 public class DBConnection {
     private static DBConnection instance;
@@ -20,7 +19,9 @@ public class DBConnection {
     private Connection connection;
 
     private DBConnection() {
-        // Private constructor — Singleton Pattern
+        // Private constructor — Singleton Pattern.
+        // Dışarıdan yeni nesne oluşturulmasın diye
+        // constructor'ı kapattık (Singleton kuralı).
     }
 
     public static synchronized DBConnection getInstance() {
@@ -31,8 +32,8 @@ public class DBConnection {
     }
 
     /**
-     * Returns a valid, open JDBC connection.
-     * Creates a new one if the current connection is null or closed.
+     * Aktif bir bağlantı varsa onu döndürür,
+     * yoksa veya kopmuşsa yenisini oluşturup verir.
      */
     public Connection getConnection() {
         try {

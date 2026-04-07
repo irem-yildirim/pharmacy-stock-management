@@ -1,71 +1,64 @@
 package com.pharmacy;
 
-import com.pharmacy.dao.DBConnection;
-import com.pharmacy.dao.DatabaseSeeder;
-import com.pharmacy.dao.UserDAO;
-import com.pharmacy.dao.DrugDAO;
-import com.pharmacy.dao.CategoryDAO;
-import com.pharmacy.dao.ExpiryDAO;
-import com.pharmacy.service.UserService;
-import com.pharmacy.service.DrugService;
-import com.pharmacy.service.CategoryService;
-import com.pharmacy.service.SaleService;
-import com.pharmacy.controllers.MedicineController;
-import com.pharmacy.controllers.LoginController;
+import com.pharmacy.dao.*;
+import com.pharmacy.service.*;
+import com.pharmacy.controllers.*;
 import com.pharmacy.views.LoginView;
 
 import javax.swing.*;
 
+/** Projenin giriş noktası. 
+ * DAO, Servis ve UI katmanlarının bir araya gelip 
+ * sistemin ayağa kalktığı yer burası. */
 public class Main {
     public static void main(String[] args) {
+        // Arayüzün kilitlenmesin diye 
+        // Swingde (EDT) başlatıyoruz.
         SwingUtilities.invokeLater(() -> {
             try {
-                System.out.println("Eczane Otomasyonu Başlatılıyor...");
+                System.out.println("--- Pharmacy Management System Starting ---");
 
-                // 1. Veritabanı Bağlantı Testi (Singleton Pattern)
+                //1.veritabanını kotnrol edip verileri yüklüyoruz.
+                //Katmanlı mimarii için önce veriye erişim (DAO),
+                //sonra iş mantığı (Service) katmanlarını kuruyoruz.
                 if (DBConnection.getInstance().getConnection() != null) {
-                    System.out.println("MySQL Bağlantısı Başarılı!");
+                    System.out.println("[Database] Connection established.");
                 }
-
-                // 1.5 Seed Data — boş tabloları otomatik doldur
                 new DatabaseSeeder().seedIfEmpty();
 
-                // 2. DAO Katmanı (Veri Erişim)
+                //2.Repository Layer (DAOs)
                 UserDAO userDAO = new UserDAO();
                 DrugDAO drugDAO = new DrugDAO();
                 CategoryDAO categoryDAO = new CategoryDAO();
-                ExpiryDAO expiryDAO = new ExpiryDAO();
-                com.pharmacy.dao.SaleDAO saleDAO = new com.pharmacy.dao.SaleDAO();
-                com.pharmacy.dao.SaleItemDAO saleItemDAO = new com.pharmacy.dao.SaleItemDAO();
-                com.pharmacy.dao.PurchaseDAO purchaseDAO = new com.pharmacy.dao.PurchaseDAO();
+                SaleDAO saleDAO = new SaleDAO();
+                SaleItemDAO saleItemDAO = new SaleItemDAO();
+                PurchaseDAO purchaseDAO = new PurchaseDAO();
+                BrandDAO brandDAO = new BrandDAO();
+                PresTypeDAO presTypeDAO = new PresTypeDAO();
 
-                // Verify seed worked
-                int userCount = userDAO.findAll().size();
-                System.out.println("[Main] Users in DB: " + userCount);
-                if (userCount == 0) {
-                    System.err.println("[Main] WARNING: No users found! Login will fail.");
-                }
-
-                // 3. Service Katmanı (İş Mantığı)
+                //3.Logic Layer (Services)
                 UserService userService = new UserService(userDAO);
                 DrugService drugService = new DrugService(drugDAO);
                 CategoryService categoryService = new CategoryService(categoryDAO);
                 SaleService saleService = new SaleService(saleDAO, saleItemDAO, drugDAO);
-                com.pharmacy.service.PurchaseService purchaseService = new com.pharmacy.service.PurchaseService(purchaseDAO, drugDAO);
+                PurchaseService purchaseService = new PurchaseService(purchaseDAO, drugDAO);
 
-                // 4. Controller Katmanı (MVC Köprüsü)
-                MedicineController medicineController = new MedicineController(drugService, categoryService, expiryDAO, saleService, purchaseService, new com.pharmacy.dao.BrandDAO(), new com.pharmacy.dao.PresTypeDAO());
+                //4.Coordination Layer (MVC Controllers)
+                MedicineController medicineController = new MedicineController(
+                    drugService, categoryService, saleService, purchaseService, brandDAO, presTypeDAO
+                );
                 LoginController loginController = new LoginController(userService, medicineController);
 
-                // 5. View Katmanı (Dependency Injection ile başlatma)
-                LoginView loginView = new LoginView(loginController);
-                loginView.setVisible(true);
+                //5.Interface Layer (Swing UI)
+                LoginView loginFrame = new LoginView(loginController);
+                loginFrame.setVisible(true);
 
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(null,
-                        "Sistem Başlatılamadı!\nMySQL Veritabanını kontrol edin.\nHata: " + e.getMessage(),
-                        "Kritik Hata", JOptionPane.ERROR_MESSAGE);
+                System.err.println("[Main] Critical system failure during startup!");
                 e.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                        "Failed to initialize system.\nPlease verify MySQL configuration.\nError: " + e.getMessage(),
+                        "Startup Error", JOptionPane.ERROR_MESSAGE);
             }
         });
     }

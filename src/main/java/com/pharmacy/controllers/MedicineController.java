@@ -1,38 +1,32 @@
 package com.pharmacy.controllers;
 
-import com.pharmacy.entity.Drug;
-import com.pharmacy.entity.Category;
-import com.pharmacy.entity.Expiry;
+import com.pharmacy.entity.*;
 import com.pharmacy.service.DrugService;
 import com.pharmacy.service.CategoryService;
-import com.pharmacy.dao.ExpiryDAO;
 import com.pharmacy.dao.BrandDAO;
 import com.pharmacy.dao.PresTypeDAO;
-import com.pharmacy.models.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Adapter (Köprü) Pattern: UI'ın beklediği "Medicine" nesnesi ile
- * saf Backend'deki "Drug" POJO'su arasındaki veri dönüşümünü (Mapping) yapar.
+ * Controller katmanı: UI ile Backend arasındaki iş akışını yönetir.
+ * Artık direkt Entity modellerini kullanarak gereksiz dönüşüm yükünden kurtulduk.
  */
 public class MedicineController {
 
     private final DrugService drugService;
     private final CategoryService categoryService;
-    private final ExpiryDAO expiryDAO;
     private final com.pharmacy.service.SaleService saleService;
     private final com.pharmacy.service.PurchaseService purchaseService;
     
     private final BrandDAO brandDAO;
     private final PresTypeDAO presTypeDAO;
 
-    public MedicineController(DrugService drugService, CategoryService categoryService, ExpiryDAO expiryDAO, com.pharmacy.service.SaleService saleService, com.pharmacy.service.PurchaseService purchaseService, BrandDAO brandDAO, PresTypeDAO presTypeDAO) {
+    public MedicineController(DrugService drugService, CategoryService categoryService, com.pharmacy.service.SaleService saleService, com.pharmacy.service.PurchaseService purchaseService, BrandDAO brandDAO, PresTypeDAO presTypeDAO) {
         this.drugService = drugService;
         this.categoryService = categoryService;
-        this.expiryDAO = expiryDAO;
         this.saleService = saleService;
         this.purchaseService = purchaseService;
         this.brandDAO = brandDAO;
@@ -40,7 +34,7 @@ public class MedicineController {
     }
 
     // =========================================================================
-    // GERÇEK VERİTABANI: BRAND, PRES_TYPE (DAO üzerinden)
+    // BRAND & PRES_TYPE
     // =========================================================================
 
     public List<Brand> getAllBrands() {
@@ -52,20 +46,15 @@ public class MedicineController {
     }
 
     // =========================================================================
-    // GERÇEK VERİTABANI: KATEGORİ (CategoryService üzerinden)
+    // CATEGORY
     // =========================================================================
 
-    public List<MedicineCategory> getAllCategories() {
-        return categoryService.getAllCategories().stream()
-                .map(cat -> new MedicineCategory(cat.getId().intValue(), cat.getName(), cat.getDescription()))
-                .collect(Collectors.toList());
+    public List<Category> getAllCategories() {
+        return categoryService.getAllCategories();
     }
 
-    public boolean addCategory(MedicineCategory cat) {
-        Category newCat = new Category();
-        newCat.setName(cat.getCatName());
-        newCat.setDescription(cat.getDescription());
-        categoryService.saveCategory(newCat);
+    public boolean addCategory(Category cat) {
+        categoryService.saveCategory(cat);
         return true;
     }
 
@@ -80,15 +69,14 @@ public class MedicineController {
     }
 
     // =========================================================================
-    // GERÇEK VERİTABANI: İLAÇ (DrugService üzerinden - Adapter Köprüsü)
+    // DRUG (İlaç İşlemleri)
     // =========================================================================
 
-    public List<Medicine> getAllMedicines() {
-        return drugService.getAllDrugs().stream()
-                .map(this::convertToMedicine).collect(Collectors.toList());
+    public List<Drug> getAllMedicines() {
+        return drugService.getAllDrugs();
     }
 
-    public List<Medicine> searchMedicines(String keyword) {
+    public List<Drug> searchMedicines(String keyword) {
         final String kw = keyword.toLowerCase().trim();
         return drugService.getAllDrugs().stream()
                 .filter(d -> d.getName().toLowerCase().contains(kw) || 
@@ -96,101 +84,34 @@ public class MedicineController {
                              (d.getBrand() != null && d.getBrand().getBrandName().toLowerCase().contains(kw)) ||
                              (d.getCategory() != null && d.getCategory().getName().toLowerCase().contains(kw))
                        )
-                .map(this::convertToMedicine).collect(Collectors.toList());
-    }
-
-    public List<Medicine> getMedicinesByBrand(long brandId) {
-        return getAllMedicines().stream()
-                .filter(m -> m.getBrandId() == brandId)
                 .collect(Collectors.toList());
     }
 
-    public List<Medicine> getMedicinesByCategory(int catId) {
+    public List<Drug> getMedicinesByBrand(long brandId) {
         return getAllMedicines().stream()
-                .filter(m -> m.getCatId() == catId)
+                .filter(m -> m.getBrand() != null && m.getBrand().getBrandId() == brandId)
                 .collect(Collectors.toList());
     }
 
-    public boolean addMedicine(Medicine med) {
-        drugService.addDrug(convertToDrug(med));
+    public List<Drug> getMedicinesByCategory(long catId) {
+        return getAllMedicines().stream()
+                .filter(m -> m.getCategory() != null && m.getCategory().getId() == catId)
+                .collect(Collectors.toList());
+    }
+
+    public boolean addMedicine(Drug med) {
+        drugService.addDrug(med);
         return true;
     }
 
-    public boolean updateMedicine(Medicine med) {
-        drugService.updateDrug(convertToDrug(med));
+    public boolean updateMedicine(Drug med) {
+        drugService.updateDrug(med);
         return true;
     }
 
-    public boolean deleteMedicine(int medId) {
-        drugService.deleteDrug(String.valueOf(medId));
+    public boolean deleteMedicine(String barcode) {
+        drugService.deleteDrug(barcode);
         return true;
-    }
-
-    // =========================================================================
-    // ADAPTER: Medicine <-> Drug Çeviri
-    // =========================================================================
-
-    private Medicine convertToMedicine(Drug drug) {
-        Medicine uiMed = new Medicine();
-        try {
-            uiMed.setMedId(Integer.parseInt(drug.getBarcode()));
-        } catch (Exception e) {
-            uiMed.setMedId(Math.abs(drug.getBarcode().hashCode()));
-        }
-        uiMed.setMedName(drug.getName());
-        uiMed.setDose(drug.getDose());
-        uiMed.setCost(drug.getCostPrice().doubleValue());
-        uiMed.setPrice(drug.getSellingPrice().doubleValue());
-        uiMed.setQuantity(drug.getStockQuantity());
-
-        if (drug.getCategory() != null) {
-            uiMed.setCatId(drug.getCategory().getId().intValue());
-        }
-
-        try {
-            Expiry expiry = expiryDAO.findByDrugBarcode(drug.getBarcode());
-            if (expiry != null && expiry.getExpirationDate() != null) {
-                uiMed.setExpirationDate(expiry.getExpirationDate());
-            }
-        } catch (Exception e) {}
-
-        if (drug.getBrand() != null) {
-            uiMed.setBrandId(drug.getBrand().getBrandId());
-        } else {
-            uiMed.setBrandId(0);
-        }
-
-        if (drug.getPresType() != null) {
-            uiMed.setPresId(drug.getPresType().getPresId());
-        } else {
-            uiMed.setPresId(0);
-        }
-        
-        return uiMed;
-    }
-
-    private Drug convertToDrug(Medicine med) {
-        Drug d = new Drug();
-        d.setBarcode(String.valueOf(med.getMedId()));
-        d.setName(med.getMedName());
-        d.setDose(med.getDose());
-        d.setCostPrice(java.math.BigDecimal.valueOf(med.getCost()));
-        d.setSellingPrice(java.math.BigDecimal.valueOf(med.getPrice()));
-        d.setStockQuantity(med.getQuantity());
-                
-        if (med.getCatId() > 0) {
-            Category c = new Category();
-            c.setId((long)med.getCatId());
-            d.setCategory(c);
-        }
-        if (med.getBrandId() > 0) {
-            d.setBrand(new Brand((int)med.getBrandId(), null));
-        }
-        if (med.getPresId() > 0) {
-            d.setPresType(new PresType((int)med.getPresId(), null, 0));
-        }
-        
-        return d;
     }
 
     public boolean sellDrug(String barcode, int quantity) {
@@ -199,15 +120,15 @@ public class MedicineController {
             if (d == null) return false;
             
             if (d.getStockQuantity() < quantity) {
-                return false; // Insufficient stock
+                return false; 
             }
 
-            com.pharmacy.entity.SaleItem item = new com.pharmacy.entity.SaleItem();
+            SaleItem item = new SaleItem();
             item.setDrug(d);
             item.setQuantity(quantity);
             item.setUnitPrice(d.getSellingPrice());
 
-            List<com.pharmacy.entity.SaleItem> items = new ArrayList<>();
+            List<SaleItem> items = new ArrayList<>();
             items.add(item);
             
             saleService.createSale(items);
@@ -217,10 +138,6 @@ public class MedicineController {
             return false;
         }
     }
-
-    // =========================================================================
-    // SATIN ALIM KÖPRÜSÜ
-    // =========================================================================
 
     public boolean purchaseDrug(String barcode, int quantity) {
         try {
@@ -233,11 +150,11 @@ public class MedicineController {
     }
 
     // =========================================================================
-    // DTO & FINANCIAL REPORTING KÖPRÜSÜ
+    // FINANCIAL REPORTING
     // =========================================================================
 
     public static class FinancialTransaction {
-        public final String type; // "SALE" or "PURCHASE"
+        public final String type; 
         public final java.time.LocalDate date;
         public final java.math.BigDecimal amount;
         public final String reference; 
@@ -255,14 +172,13 @@ public class MedicineController {
         public final java.math.BigDecimal totalPurchases;
         public final java.math.BigDecimal netProfit;
         
-        // Quick Stats
         public final java.math.BigDecimal todayRevenue;
         public final int lowStockCount;
         public final int expiryCount;
         public final int totalInventory;
 
         public FinancialSummary(java.math.BigDecimal totalSales, java.math.BigDecimal totalPurchases, 
-                                java.math.BigDecimal todayRevenue, int lowStockCount, int expiryCount, int totalInventory) {
+                                 java.math.BigDecimal todayRevenue, int lowStockCount, int expiryCount, int totalInventory) {
             this.totalSales = totalSales != null ? totalSales : java.math.BigDecimal.ZERO;
             this.totalPurchases = totalPurchases != null ? totalPurchases : java.math.BigDecimal.ZERO;
             this.netProfit = this.totalSales.subtract(this.totalPurchases);
@@ -274,13 +190,16 @@ public class MedicineController {
     }
 
     public FinancialSummary getFinancialSummary() {
-        List<Medicine> all = getAllMedicines();
+        List<Drug> all = getAllMedicines();
         int totalInv = all.size();
-        int lowStock = (int) all.stream().filter(m -> m.getQuantity() < 10).count();
+        int lowStock = (int) all.stream().filter(m -> m.getStockQuantity() < 10).count();
         
         java.time.LocalDate threshold30 = java.time.LocalDate.now().plusDays(30);
         int expCount = (int) all.stream()
-                .filter(m -> m.getExpirationDate() != null && !m.getExpirationDate().isAfter(threshold30))
+                .filter(m -> {
+                    Expiry exp = m.getExpiry();
+                    return exp != null && exp.getExpirationDate() != null && !exp.getExpirationDate().isAfter(threshold30);
+                })
                 .count();
 
         return new FinancialSummary(
@@ -294,17 +213,16 @@ public class MedicineController {
     }
 
     public List<FinancialTransaction> getFinancialTransactions() {
-        List<FinancialTransaction> list = new java.util.ArrayList<>();
+        List<FinancialTransaction> list = new ArrayList<>();
         
-        for (com.pharmacy.entity.Sale s : saleService.getAllSales()) {
+        for (Sale s : saleService.getAllSales()) {
             list.add(new FinancialTransaction("SALE", s.getSaleDate(), s.getTotalAmount(), "Sale ID #" + s.getId()));
         }
         
-        for (com.pharmacy.entity.Purchase p : purchaseService.getAllPurchases()) {
+        for (Purchase p : purchaseService.getAllPurchases()) {
             java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
             if (p.getDrug() != null && p.getDrug().getBarcode() != null) {
-                Drug drug = drugService.getAllDrugs().stream()
-                        .filter(d -> p.getDrug().getBarcode().equals(d.getBarcode())).findFirst().orElse(null);
+                Drug drug = drugService.findByBarcode(p.getDrug().getBarcode());
                 if (drug != null && drug.getCostPrice() != null) {
                     amount = drug.getCostPrice().multiply(java.math.BigDecimal.valueOf(p.getQuantityAdded()));
                 }

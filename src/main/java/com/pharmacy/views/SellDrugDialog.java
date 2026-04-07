@@ -1,7 +1,7 @@
 package com.pharmacy.views;
 
 import com.pharmacy.controllers.MedicineController;
-import com.pharmacy.models.Medicine;
+import com.pharmacy.entity.Drug;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -15,7 +15,7 @@ public class SellDrugDialog extends JDialog {
     private final MedicineController controller;
     private final DashboardView parent;
 
-    private JComboBox<Medicine> medicineCombo;
+    private JComboBox<Drug> medicineCombo;
     private JSpinner quantitySpinner;
     private JLabel totalLabel;
 
@@ -54,7 +54,6 @@ public class SellDrugDialog extends JDialog {
         form.setBackground(BG_WHITE);
         form.setBorder(new EmptyBorder(20, 24, 10, 24));
 
-        // Drug Selection
         JLabel medLabel = new JLabel("Select Medicine");
         medLabel.setFont(FONT_LABEL);
         medLabel.setForeground(TEXT_PRIMARY);
@@ -63,9 +62,9 @@ public class SellDrugDialog extends JDialog {
         form.add(Box.createVerticalStrut(4));
 
         medicineCombo = new JComboBox<>();
-        List<Medicine> allMeds = controller.getAllMedicines();
-        for (Medicine m : allMeds) {
-            if (m.getQuantity() > 0) {
+        List<Drug> allMeds = controller.getAllMedicines();
+        for (Drug m : allMeds) {
+            if (m.getStockQuantity() > 0) {
                 medicineCombo.addItem(m);
             }
         }
@@ -74,9 +73,9 @@ public class SellDrugDialog extends JDialog {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof Medicine) {
-                    Medicine m = (Medicine) value;
-                    setText(m.getMedName() + " (" + m.getDose() + ") - Stock: " + m.getQuantity());
+                if (value instanceof Drug) {
+                    Drug m = (Drug) value;
+                    setText(m.getName() + " (" + m.getDose() + ") - Stock: " + m.getStockQuantity());
                 }
                 return this;
             }
@@ -89,7 +88,6 @@ public class SellDrugDialog extends JDialog {
         form.add(medicineCombo);
         form.add(Box.createVerticalStrut(16));
 
-        // Quantity Spinner
         JLabel qtyLabel = new JLabel("Quantity");
         qtyLabel.setFont(FONT_LABEL);
         qtyLabel.setForeground(TEXT_PRIMARY);
@@ -105,7 +103,6 @@ public class SellDrugDialog extends JDialog {
         form.add(quantitySpinner);
         form.add(Box.createVerticalStrut(24));
 
-        // Total Price Display
         totalLabel = new JLabel("Total: 0.00 TL");
         totalLabel.setFont(FONT_TITLE);
         totalLabel.setForeground(ACCENT_DARK);
@@ -118,17 +115,17 @@ public class SellDrugDialog extends JDialog {
     }
 
     private void updateTotal() {
-        Medicine selected = (Medicine) medicineCombo.getSelectedItem();
-        if (selected != null) {
+        Object selected = medicineCombo.getSelectedItem();
+        if (selected instanceof Drug) {
+            Drug drug = (Drug) selected;
             int qty = (int) quantitySpinner.getValue();
-            double total = selected.getPrice() * qty;
+            double total = drug.getSellingPrice().doubleValue() * qty;
             totalLabel.setText(String.format("Total: %.2f TL", total));
             
-            // Limit spinner max to available stock
             SpinnerNumberModel model = (SpinnerNumberModel) quantitySpinner.getModel();
-            model.setMaximum(selected.getQuantity());
-            if (qty > selected.getQuantity()) {
-                quantitySpinner.setValue(selected.getQuantity());
+            model.setMaximum(drug.getStockQuantity());
+            if (qty > drug.getStockQuantity()) {
+                quantitySpinner.setValue(drug.getStockQuantity());
             }
         }
     }
@@ -168,15 +165,16 @@ public class SellDrugDialog extends JDialog {
     }
 
     private void handleSale() {
-        Medicine selected = (Medicine) medicineCombo.getSelectedItem();
-        if (selected == null) {
+        Object selected = medicineCombo.getSelectedItem();
+        if (!(selected instanceof Drug)) {
             ThemedDialog.showMessage(this, "No medicine selected.", ThemedDialog.Kind.ERROR);
             return;
         }
 
+        Drug drug = (Drug) selected;
         int qty = (int) quantitySpinner.getValue();
         
-        boolean success = controller.sellDrug(String.valueOf(selected.getMedId()), qty);
+        boolean success = controller.sellDrug(drug.getBarcode(), qty);
         
         if (success) {
             ThemedDialog.showMessage(this, "Sale completed successfully!", ThemedDialog.Kind.SUCCESS);

@@ -1,4 +1,4 @@
-package com.pharmacy.models;
+package com.pharmacy.entity;
 
 public class Brand {
     private int brandId;

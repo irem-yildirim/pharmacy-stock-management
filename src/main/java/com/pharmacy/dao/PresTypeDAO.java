@@ -1,6 +1,6 @@
 package com.pharmacy.dao;
 
-import com.pharmacy.models.PresType;
+import com.pharmacy.entity.PresType;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +13,7 @@ public class PresTypeDAO implements BaseDAO<PresType, Integer> {
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, p.getPrescription());
-            pstmt.setInt(2, p.getLevel());
+            pstmt.setInt(2, p.getRiskLevel());
             pstmt.executeUpdate();
             try (ResultSet rs = pstmt.getGeneratedKeys()) {
                 if (rs.next()) {
@@ -31,7 +31,7 @@ public class PresTypeDAO implements BaseDAO<PresType, Integer> {
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, p.getPrescription());
-            pstmt.setInt(2, p.getLevel());
+            pstmt.setInt(2, p.getRiskLevel());
             pstmt.setInt(3, p.getPresId());
             pstmt.executeUpdate();
         } catch (SQLException e) {

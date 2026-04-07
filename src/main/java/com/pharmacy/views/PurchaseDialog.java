@@ -1,7 +1,7 @@
 package com.pharmacy.views;
 
 import com.pharmacy.controllers.MedicineController;
-import com.pharmacy.models.Medicine;
+import com.pharmacy.entity.Drug;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -15,7 +15,7 @@ public class PurchaseDialog extends JDialog {
     private final MedicineController controller;
     private final DashboardView parent;
 
-    private JComboBox<Medicine> medicineCombo;
+    private JComboBox<Drug> medicineCombo;
     private JSpinner quantitySpinner;
     private JLabel totalLabel;
 
@@ -54,7 +54,6 @@ public class PurchaseDialog extends JDialog {
         form.setBackground(BG_WHITE);
         form.setBorder(new EmptyBorder(20, 24, 10, 24));
 
-        // Drug Selection
         JLabel medLabel = new JLabel("Select Medicine to Purchase");
         medLabel.setFont(FONT_LABEL);
         medLabel.setForeground(TEXT_PRIMARY);
@@ -63,23 +62,25 @@ public class PurchaseDialog extends JDialog {
         form.add(Box.createVerticalStrut(4));
 
         medicineCombo = new JComboBox<>();
-        List<Medicine> meds = controller.getMedicinesByBrand((long)brandId);
+        List<Drug> meds = controller.getMedicinesByBrand(brandId);
         
-        for (Medicine m : meds) {
+        for (Drug m : meds) {
             medicineCombo.addItem(m);
         }
         
         if (meds.isEmpty()) {
-            medicineCombo.addItem(new Medicine()); // Dummy to show "No matching medicines"
+            medicineCombo.addItem(null); 
         }
         
         medicineCombo.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof Medicine) {
-                    Medicine m = (Medicine) value;
-                    setText(m.getMedName() != null ? m.getMedName() + " (" + m.getDose() + ") - Cost: " + String.format("%.2f", m.getCost()) : "No medicines found mapped to this");
+                if (value instanceof Drug) {
+                    Drug m = (Drug) value;
+                    setText(m.getName() != null ? m.getName() + " (" + m.getDose() + ") - Cost: " + String.format("%.2f", m.getCostPrice().doubleValue()) : "Unknown");
+                } else if (value == null) {
+                    setText("No medicines found for this brand");
                 }
                 return this;
             }
@@ -92,7 +93,6 @@ public class PurchaseDialog extends JDialog {
         form.add(medicineCombo);
         form.add(Box.createVerticalStrut(16));
 
-        // Quantity Spinner
         JLabel qtyLabel = new JLabel("Purchase Quantity");
         qtyLabel.setFont(FONT_LABEL);
         qtyLabel.setForeground(TEXT_PRIMARY);
@@ -108,7 +108,6 @@ public class PurchaseDialog extends JDialog {
         form.add(quantitySpinner);
         form.add(Box.createVerticalStrut(24));
 
-        // Total Price Display
         totalLabel = new JLabel("Total: 0.00 TL");
         totalLabel.setFont(FONT_TITLE);
         totalLabel.setForeground(ACCENT_DARK);
@@ -121,10 +120,11 @@ public class PurchaseDialog extends JDialog {
     }
 
     private void updateTotal() {
-        Medicine selected = (Medicine) medicineCombo.getSelectedItem();
-        if (selected != null && selected.getMedName() != null) {
+        Object selected = medicineCombo.getSelectedItem();
+        if (selected instanceof Drug) {
+            Drug drug = (Drug) selected;
             int qty = (int) quantitySpinner.getValue();
-            double total = selected.getCost() * qty;
+            double total = drug.getCostPrice().doubleValue() * qty;
             totalLabel.setText(String.format("Total: %.2f TL", total));
         } else {
             totalLabel.setText("Total: 0.00 TL");
@@ -166,22 +166,23 @@ public class PurchaseDialog extends JDialog {
     }
 
     private void handlePurchase() {
-        Medicine selected = (Medicine) medicineCombo.getSelectedItem();
-        if (selected == null || selected.getMedName() == null) {
+        Object selected = medicineCombo.getSelectedItem();
+        if (!(selected instanceof Drug)) {
             ThemedDialog.showMessage(this, "No valid medicine selected.", ThemedDialog.Kind.ERROR);
             return;
         }
 
+        Drug drug = (Drug) selected;
         int qty = (int) quantitySpinner.getValue();
         
-        boolean success = controller.purchaseDrug(String.valueOf(selected.getMedId()), qty);
+        boolean success = controller.purchaseDrug(drug.getBarcode(), qty);
         
         if (success) {
             ThemedDialog.showMessage(this, "Purchase recorded! Stock updated.", ThemedDialog.Kind.SUCCESS);
             dispose();
             parent.loadTableData();
         } else {
-            ThemedDialog.showMessage(this, "Purchase failed due to an internal error.", ThemedDialog.Kind.ERROR);
+            ThemedDialog.showMessage(this, "Purchase failed.", ThemedDialog.Kind.ERROR);
         }
     }
 }

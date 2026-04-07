@@ -54,7 +54,8 @@ public class LoginView extends JFrame {
             userCombo.addItem(u);
         }
 
-        // Role badge — updates dynamically when user selection changes
+        // Seçilen kullanıcıya göre rol(Admin/Eczacı) otomatik değişiyor, kullanıcı kim
+        // olduğunu görsün.
         roleLabel = new JLabel("");
         roleLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
         roleLabel.setForeground(ACCENT);
@@ -107,7 +108,7 @@ public class LoginView extends JFrame {
         }
     }
 
-    // SWINGWORKER (ASYNC EDT PROTECTION)
+    /// Giriş yaparken uygulama donmasın diye db sorgusunu arkaplanda(SwingWorker).
     private void handleLogin(ActionEvent e) {
         User selectedUser = (User) userCombo.getSelectedItem();
         String password = new String(passwordField.getPassword());

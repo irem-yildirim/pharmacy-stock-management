@@ -1,8 +1,5 @@
 package com.pharmacy.entity;
 
-import com.pharmacy.models.Brand;
-import com.pharmacy.models.PresType;
-
 import java.math.BigDecimal;
 import java.util.List;
 

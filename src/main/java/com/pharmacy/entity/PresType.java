@@ -1,17 +1,17 @@
-package com.pharmacy.models;
+package com.pharmacy.entity;
 
 public class PresType {
     private int presId;
     private String prescription;
-    private int level;
+    private int riskLevel;
 
     public PresType() {
     }
 
-    public PresType(int presId, String prescription, int level) {
+    public PresType(int presId, String prescription, int riskLevel) {
         this.presId = presId;
         this.prescription = prescription;
-        this.level = level;
+        this.riskLevel = riskLevel;
     }
 
     public int getPresId() {
@@ -30,12 +30,12 @@ public class PresType {
         this.prescription = prescription;
     }
 
-    public int getLevel() {
-        return level;
+    public int getRiskLevel() {
+        return riskLevel;
     }
 
-    public void setLevel(int level) {
-        this.level = level;
+    public void setRiskLevel(int riskLevel) {
+        this.riskLevel = riskLevel;
     }
 
     @Override
