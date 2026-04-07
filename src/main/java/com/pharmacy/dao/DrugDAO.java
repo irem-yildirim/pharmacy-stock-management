@@ -106,11 +106,13 @@ public class DrugDAO implements BaseDAO<Drug, String> {
     public Drug findById(String barcode) {
         String query = "SELECT d.*, c.name AS category_name, c.description AS category_description, " +
                 "b.name AS brand_name, " +
-                "p.name AS pres_name, p.level AS pres_level " +
+                "p.name AS pres_name, p.level AS pres_level, " +
+                "e.id AS expiry_id, e.expiration_date " +
                 "FROM drug d " +
                 "LEFT JOIN category c ON d.category_id = c.id " +
                 "LEFT JOIN brand b ON d.brand_id = b.id " +
                 "LEFT JOIN pres_type p ON d.pres_id = p.id " +
+                "LEFT JOIN expiry e ON d.barcode = e.drug_barcode " +
                 "WHERE d.barcode = ?";
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -132,11 +134,13 @@ public class DrugDAO implements BaseDAO<Drug, String> {
         List<Drug> drugs = new ArrayList<>();
         String query = "SELECT d.*, c.name AS category_name, c.description AS category_description, " +
                 "b.name AS brand_name, " +
-                "p.name AS pres_name, p.level AS pres_level " +
+                "p.name AS pres_name, p.level AS pres_level, " +
+                "e.id AS expiry_id, e.expiration_date " +
                 "FROM drug d " +
                 "LEFT JOIN category c ON d.category_id = c.id " +
                 "LEFT JOIN brand b ON d.brand_id = b.id " +
-                "LEFT JOIN pres_type p ON d.pres_id = p.id";
+                "LEFT JOIN pres_type p ON d.pres_id = p.id " +
+                "LEFT JOIN expiry e ON d.barcode = e.drug_barcode";
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(query);
                 ResultSet rs = pstmt.executeQuery()) {
@@ -176,6 +180,25 @@ public class DrugDAO implements BaseDAO<Drug, String> {
         long presId = rs.getLong("pres_id");
         if (!rs.wasNull()) {
             drug.setPresType(new PresType((int) presId, rs.getString("pres_name"), rs.getInt("pres_level")));
+        }
+
+        long expiryId = rs.getLong("expiry_id");
+        if (!rs.wasNull()) {
+            com.pharmacy.entity.Expiry expiry = new com.pharmacy.entity.Expiry();
+            expiry.setId(expiryId);
+            java.sql.Date sqlDate = rs.getDate("expiration_date");
+            if (sqlDate != null) {
+                java.time.LocalDate expDate = sqlDate.toLocalDate();
+                expiry.setExpirationDate(expDate);
+                
+                // Dynamic Calculation
+                long days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), expDate);
+                expiry.setDaysRemaining(days);
+                
+                String status = days <= 0 ? "EXPIRED" : (days <= 30 ? "CRITICAL" : "OK");
+                expiry.setStatus(status);
+            }
+            drug.setExpiry(expiry);
         }
 
         return drug;

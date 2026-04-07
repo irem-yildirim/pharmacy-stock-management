@@ -127,7 +127,7 @@ public class DashboardView extends JFrame {
 
         centerWrapper.add(homePanel, CARD_HOME);
 
-        // 2. MEDICINSE CARD
+        // 2. MEDICINES CARD
         cardsPanel = new JPanel(new GridLayout(0, 3, 18, 18));
         cardsPanel.setBackground(BG_LIGHT);
         cardsPanel.setBorder(new EmptyBorder(24, 24, 24, 24));
@@ -167,6 +167,7 @@ public class DashboardView extends JFrame {
             protected void done() {
                 try {
                     Object[] res = get();
+                    @SuppressWarnings("unchecked")
                     List<Drug> all = (List<Drug>) res[0];
                     MedicineController.FinancialSummary stats = (MedicineController.FinancialSummary) res[1];
                     updateBentoDashboard(all, stats);
@@ -246,22 +247,29 @@ public class DashboardView extends JFrame {
     }
 
     private JPanel buildExpiryWidget(List<Drug> all) {
-        LocalDate threshold30 = LocalDate.now().plusDays(30);
-        List<Drug> expirations = all.stream()
-                .filter(m -> m.getExpiry() != null && m.getExpiry().getExpirationDate() != null
-                        && !m.getExpiry().getExpirationDate().isAfter(threshold30))
-                .sorted(Comparator.comparing(m -> m.getExpiry().getExpirationDate())).toList();
+        LocalDate now = LocalDate.now();
 
-        return buildSectionWidget("📅  Upcoming Expirations", new Color(240, 140, 50), expirations, null);
+        List<Drug> expirations = all.stream()
+                .filter(m -> m.getExpiry() != null && m.getExpiry().getExpirationDate() != null)
+                .filter(m -> {
+                    long days = java.time.temporal.ChronoUnit.DAYS.between(now, m.getExpiry().getExpirationDate());
+                    return days <= 30; // Only show items expiring within 30 days
+                })
+                .sorted(Comparator.comparing(m -> m.getExpiry().getExpirationDate()))
+                .collect(java.util.stream.Collectors.toList());
+
+        return buildSectionWidget("📅  Critical Expirations (<30 Days)", new Color(240, 140, 50), expirations, null);
     }
 
     private JPanel buildLowStockWidget(List<Drug> all) {
         List<Drug> lowStock = all.stream().filter(m -> m.getStockQuantity() < 10)
-                .sorted(Comparator.comparingInt(Drug::getStockQuantity)).toList();
+                .sorted(Comparator.comparingInt(Drug::getStockQuantity))
+                .collect(java.util.stream.Collectors.toList());
 
         boolean hasUrgent = !lowStock.isEmpty();
         List<Drug> toShow = hasUrgent ? lowStock
-                : all.stream().sorted(Comparator.comparingInt(Drug::getStockQuantity)).limit(6).toList();
+                : all.stream().sorted(Comparator.comparingInt(Drug::getStockQuantity)).limit(6)
+                        .collect(java.util.stream.Collectors.toList());
         ExpiryMode cardMode = hasUrgent ? ExpiryMode.EXPIRING_SOON : ExpiryMode.EXPIRY_SAFE;
 
         return buildSectionWidget(hasUrgent ? "⚠️  Critical Stock" : "📦  Stock Monitor",
@@ -312,15 +320,27 @@ public class DashboardView extends JFrame {
             Brand b = m.getBrand();
             PresType p = m.getPresType();
             ExpiryMode computedMode = cardMode;
+
             if (cardMode == null && m.getExpiry() != null && m.getExpiry().getExpirationDate() != null) {
                 long days = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(),
                         m.getExpiry().getExpirationDate());
-                computedMode = (days <= 15) ? ExpiryMode.EXPIRY_URGENT : ExpiryMode.EXPIRING_SOON;
+
+                if (days <= 15) {
+                    computedMode = ExpiryMode.EXPIRY_URGENT;
+                } else if (days <= 30) {
+                    computedMode = ExpiryMode.EXPIRING_SOON;
+                } else {
+                    computedMode = ExpiryMode.EXPIRY_SAFE;
+                }
             } else if (cardMode == null) {
                 computedMode = ExpiryMode.EXPIRY_SAFE;
             }
-            grid.add(new MedicineCard(m, b != null ? b.getBrandName() : "Unknown",
-                    p != null ? p.getPrescription() : "Unknown", computedMode, this::openMedicineForm));
+
+            String bName = (b != null) ? b.getBrandName() : "Unknown";
+            String pName = (p != null) ? p.getPrescription() : "Unknown";
+
+            MedicineCard card = new MedicineCard(m, bName, pName, computedMode, (drug) -> this.openMedicineForm(drug));
+            grid.add(card);
         }
 
         JScrollPane scroll = new JScrollPane(grid);
