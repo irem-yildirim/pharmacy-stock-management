@@ -1,64 +1,51 @@
 package com.pharmacy;
 
+import com.pharmacy.controllers.InventoryController;
+import com.pharmacy.controllers.TransactionController;
+import com.pharmacy.controllers.ReportController;
+import com.pharmacy.controllers.LoginController;
 import com.pharmacy.dao.*;
 import com.pharmacy.service.*;
-import com.pharmacy.controllers.*;
 import com.pharmacy.views.LoginView;
+import javax.swing.SwingUtilities;
 
-import javax.swing.*;
-
-/** Projenin giriş noktası. 
- * DAO, Servis ve UI katmanlarının bir araya gelip 
- * sistemin ayağa kalktığı yer burası. */
 public class Main {
     public static void main(String[] args) {
-        // Arayüzün kilitlenmesin diye 
-        // Swingde (EDT) başlatıyoruz.
         SwingUtilities.invokeLater(() -> {
             try {
-                System.out.println("--- Pharmacy Management System Starting ---");
-
-                //1.veritabanını kotnrol edip verileri yüklüyoruz.
-                //Katmanlı mimarii için önce veriye erişim (DAO),
-                //sonra iş mantığı (Service) katmanlarını kuruyoruz.
-                if (DBConnection.getInstance().getConnection() != null) {
-                    System.out.println("[Database] Connection established.");
-                }
+                // Initialize Database (Auto-Seed)
                 new DatabaseSeeder().seedIfEmpty();
 
-                //2.Repository Layer (DAOs)
+                // 1) DAO Katmanı
                 UserDAO userDAO = new UserDAO();
                 DrugDAO drugDAO = new DrugDAO();
+                BrandDAO brandDAO = new BrandDAO();
                 CategoryDAO categoryDAO = new CategoryDAO();
+                PresTypeDAO presTypeDAO = new PresTypeDAO();
+                PurchaseDAO purchaseDAO = new PurchaseDAO();
                 SaleDAO saleDAO = new SaleDAO();
                 SaleItemDAO saleItemDAO = new SaleItemDAO();
-                PurchaseDAO purchaseDAO = new PurchaseDAO();
-                BrandDAO brandDAO = new BrandDAO();
-                PresTypeDAO presTypeDAO = new PresTypeDAO();
+                ExpiryDAO expiryDAO = new ExpiryDAO();
 
-                //3.Logic Layer (Services)
+                // 2) Service Katmanı
                 UserService userService = new UserService(userDAO);
-                DrugService drugService = new DrugService(drugDAO);
                 CategoryService categoryService = new CategoryService(categoryDAO);
-                SaleService saleService = new SaleService(saleDAO, saleItemDAO, drugDAO);
+                DrugService drugService = new DrugService(drugDAO);
                 PurchaseService purchaseService = new PurchaseService(purchaseDAO, drugDAO);
+                SaleService saleService = new SaleService(saleDAO, saleItemDAO, drugDAO);
 
-                //4.Coordination Layer (MVC Controllers)
-                MedicineController medicineController = new MedicineController(
-                    drugService, categoryService, saleService, purchaseService, brandDAO, presTypeDAO
-                );
-                LoginController loginController = new LoginController(userService, medicineController);
+                // 3) Controller Katmanı
+                InventoryController inventoryController = new InventoryController(drugService, categoryService, brandDAO, presTypeDAO);
+                TransactionController transactionController = new TransactionController(saleService, purchaseService, drugService);
+                ReportController reportController = new ReportController(saleService, purchaseService, drugService);
+                
+                LoginController loginController = new LoginController(userService, inventoryController, transactionController, reportController);
 
-                //5.Interface Layer (Swing UI)
-                LoginView loginFrame = new LoginView(loginController);
-                loginFrame.setVisible(true);
-
+                // 4) View Başlatma
+                LoginView loginView = new LoginView(loginController);
+                loginView.setVisible(true);
             } catch (Exception e) {
-                System.err.println("[Main] Critical system failure during startup!");
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(null,
-                        "Failed to initialize system.\nPlease verify MySQL configuration.\nError: " + e.getMessage(),
-                        "Startup Error", JOptionPane.ERROR_MESSAGE);
             }
         });
     }

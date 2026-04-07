@@ -9,14 +9,17 @@ import java.util.function.Consumer;
 public class LoginController {
 
     private final UserService userService;
-    private final MedicineController medicineController;
+    private final InventoryController inventoryController;
+    private final TransactionController transactionController;
+    private final ReportController reportController;
 
-    public LoginController(UserService userService, MedicineController medicineController) {
+    public LoginController(UserService userService, InventoryController invC, TransactionController transC, ReportController repC) {
         this.userService = userService;
-        this.medicineController = medicineController;
+        this.inventoryController = invC;
+        this.transactionController = transC;
+        this.reportController = repC;
     }
 
-    //  Login
     public void loginAsync(String username, String password, Consumer<Boolean> callback) {
         new SwingWorker<Boolean, Void>() {
             @Override
@@ -39,7 +42,6 @@ public class LoginController {
         }.execute();
     }
 
-    //  Login (boolean)
     public boolean login(String username, String password) {
         try {
             return userService.authenticate(username, password);
@@ -48,12 +50,11 @@ public class LoginController {
         }
     }
 
-    // Backend.User listesini döndürür.
     public List<User> getAllUsers() {
         return userService.getAllUsers();
     }
 
-    public MedicineController getMedicineController() {
-        return medicineController;
-    }
+    public InventoryController getInventoryController() { return inventoryController; }
+    public TransactionController getTransactionController() { return transactionController; }
+    public ReportController getReportController() { return reportController; }
 }

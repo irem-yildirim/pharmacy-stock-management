@@ -1,15 +1,15 @@
 package com.pharmacy.views;
 
 import com.pharmacy.controllers.LoginController;
-import com.pharmacy.controllers.MedicineController;
 import com.pharmacy.entity.User;
+import com.pharmacy.views.components.ThemedDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 
-import static com.pharmacy.views.ThemeConstants.*;
+import static com.pharmacy.views.components.ThemeConstants.*;
 
 public class LoginView extends JFrame {
     private final LoginController loginController;
@@ -133,8 +133,11 @@ public class LoginView extends JFrame {
                 try {
                     if (get()) {
                         LoginView.this.dispose();
-                        MedicineController medController = loginController.getMedicineController();
-                        DashboardView dashboard = new DashboardView(medController);
+                        DashboardView dashboard = new DashboardView(
+                            loginController.getInventoryController(),
+                            loginController.getTransactionController(),
+                            loginController.getReportController()
+                        );
                         dashboard.setVisible(true);
                     } else {
                         ThemedDialog.showMessage(LoginView.this, "Invalid credentials.", ThemedDialog.Kind.ERROR);

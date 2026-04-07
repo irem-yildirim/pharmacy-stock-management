@@ -1,4 +1,4 @@
-package com.pharmacy.views;
+package com.pharmacy.views.components;
 
 import com.pharmacy.entity.Drug;
 import com.pharmacy.entity.Expiry;
@@ -8,7 +8,7 @@ import java.awt.*;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
-import static com.pharmacy.views.ThemeConstants.*;
+import static com.pharmacy.views.components.ThemeConstants.*;
 
 /**
  * A card that displays a single Drug summary info.

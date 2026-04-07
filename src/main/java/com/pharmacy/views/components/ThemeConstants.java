@@ -1,4 +1,4 @@
-package com.pharmacy.views;
+package com.pharmacy.views.components;
 
 import java.awt.*;
 

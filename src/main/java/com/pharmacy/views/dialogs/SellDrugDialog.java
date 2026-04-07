@@ -1,28 +1,32 @@
-package com.pharmacy.views;
+package com.pharmacy.views.dialogs;
 
-import com.pharmacy.controllers.MedicineController;
+import com.pharmacy.controllers.InventoryController;
+import com.pharmacy.controllers.TransactionController;
 import com.pharmacy.entity.Drug;
+import com.pharmacy.views.DashboardView;
+import com.pharmacy.views.components.ThemedDialog;
+import static com.pharmacy.views.components.ThemeConstants.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.List;
 
-import static com.pharmacy.views.ThemeConstants.*;
-
 public class SellDrugDialog extends JDialog {
 
-    private final MedicineController controller;
+    private final TransactionController transactionController;
+    private final InventoryController inventoryController;
     private final DashboardView parent;
 
     private JComboBox<Drug> medicineCombo;
     private JSpinner quantitySpinner;
     private JLabel totalLabel;
 
-    public SellDrugDialog(DashboardView parent, MedicineController controller) {
+    public SellDrugDialog(DashboardView parent, TransactionController transC, InventoryController invC) {
         super(parent, "Sell Medicine (POS)", true);
         this.parent = parent;
-        this.controller = controller;
+        this.transactionController = transC;
+        this.inventoryController = invC;
 
         setSize(400, 360);
         setLocationRelativeTo(parent);
@@ -62,7 +66,7 @@ public class SellDrugDialog extends JDialog {
         form.add(Box.createVerticalStrut(4));
 
         medicineCombo = new JComboBox<>();
-        List<Drug> allMeds = controller.getAllMedicines();
+        List<Drug> allMeds = inventoryController.getAllMedicines();
         for (Drug m : allMeds) {
             if (m.getStockQuantity() > 0) {
                 medicineCombo.addItem(m);
@@ -174,7 +178,7 @@ public class SellDrugDialog extends JDialog {
         Drug drug = (Drug) selected;
         int qty = (int) quantitySpinner.getValue();
         
-        boolean success = controller.sellDrug(drug.getBarcode(), qty);
+        boolean success = transactionController.sellDrug(drug.getBarcode(), qty);
         
         if (success) {
             ThemedDialog.showMessage(this, "Sale completed successfully!", ThemedDialog.Kind.SUCCESS);

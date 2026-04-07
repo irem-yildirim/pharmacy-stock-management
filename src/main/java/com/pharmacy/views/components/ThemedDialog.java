@@ -1,10 +1,10 @@
-package com.pharmacy.views;
+package com.pharmacy.views.components;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-import static com.pharmacy.views.ThemeConstants.*;
+import static com.pharmacy.views.components.ThemeConstants.*;
 
 /**
  * Utility class providing themed modal dialogs that match the app design

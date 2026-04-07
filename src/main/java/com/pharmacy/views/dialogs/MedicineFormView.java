@@ -1,15 +1,6 @@
-package com.pharmacy.views;
+package com.pharmacy.views.dialogs;
 
-import static com.pharmacy.views.ThemeConstants.ACCENT;
-import static com.pharmacy.views.ThemeConstants.ACCENT_DARK;
-import static com.pharmacy.views.ThemeConstants.ACCENT_HOVER;
-import static com.pharmacy.views.ThemeConstants.BG_CARD;
-import static com.pharmacy.views.ThemeConstants.BG_WHITE;
-import static com.pharmacy.views.ThemeConstants.FONT_BODY;
-import static com.pharmacy.views.ThemeConstants.FONT_HEADER;
-import static com.pharmacy.views.ThemeConstants.FONT_LABEL;
-import static com.pharmacy.views.ThemeConstants.SIDEBAR_BG;
-import static com.pharmacy.views.ThemeConstants.TEXT_PRIMARY;
+import static com.pharmacy.views.components.ThemeConstants.*;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -37,10 +28,12 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
-import com.pharmacy.controllers.MedicineController;
+import com.pharmacy.controllers.InventoryController;
 import com.pharmacy.entity.Brand;
 import com.pharmacy.entity.Category;
 import com.pharmacy.entity.Drug;
+import com.pharmacy.views.DashboardView;
+import com.pharmacy.views.components.ThemedDialog;
 
 /**
  * Yeni ilaç ekleme veya mevcut olanı güncelleme ekranı.
@@ -48,7 +41,7 @@ import com.pharmacy.entity.Drug;
  */
 public class MedicineFormView extends JDialog {
 
-    private final MedicineController controller;
+    private final InventoryController controller;
     private final Drug medicine; // null = add mode
     private final DashboardView parent;
 
@@ -56,7 +49,7 @@ public class MedicineFormView extends JDialog {
     private JComboBox<Category> categoryCombo;
     private JComboBox<Brand> brandCombo;
 
-    public MedicineFormView(DashboardView parent, MedicineController controller, Drug medicine) {
+    public MedicineFormView(DashboardView parent, InventoryController controller, Drug medicine) {
         super(parent, medicine == null ? "Add Medicine" : "Edit Medicine", true);
         this.parent = parent;
         this.controller = controller;
@@ -116,6 +109,7 @@ public class MedicineFormView extends JDialog {
 
             priceField = addField(quickPanel, "Selling Price");
             qtyField = addField(quickPanel, "Stock Quantity");
+            expiryField = addField(quickPanel, "Expiry Date (YYYY-MM-DD)");
 
             form.add(quickPanel);
             form.add(Box.createVerticalStrut(12));
@@ -190,7 +184,9 @@ public class MedicineFormView extends JDialog {
             }
             if (medicine.getCategory() != null && medicine.getCategory().getId() != null) {
                 for (int i = 0; i < categoryCombo.getItemCount(); i++) {
-                    if (categoryCombo.getItemAt(i).getId().equals(medicine.getCategory().getId())) {
+                    Category cat = categoryCombo.getItemAt(i);
+                    // NullPointerException Önlemi: Combo'dan gelen nesne veya id null olabilir
+                    if (cat != null && cat.getId() != null && cat.getId().equals(medicine.getCategory().getId())) {
                         categoryCombo.setSelectedIndex(i);
                         break;
                     }
@@ -199,7 +195,9 @@ public class MedicineFormView extends JDialog {
 
             if (medicine.getBrand() != null && medicine.getBrand().getBrandId() != 0) {
                 for (int i = 0; i < brandCombo.getItemCount(); i++) {
-                    if (brandCombo.getItemAt(i).getBrandId() == medicine.getBrand().getBrandId()) {
+                    Brand b = brandCombo.getItemAt(i);
+                    // NullPointerException Önlemi
+                    if (b != null && b.getBrandId() == medicine.getBrand().getBrandId()) {
                         brandCombo.setSelectedIndex(i);
                         break;
                     }
