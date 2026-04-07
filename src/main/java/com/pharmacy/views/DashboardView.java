@@ -471,11 +471,13 @@ public class DashboardView extends JFrame {
         JButton btnAddMed = createNavButton("➕  Add Medicine");
         JButton btnAddBrand = createNavButton("🏢  Add Brand");
         JButton btnAddCat = createNavButton("📁  Add Category");
+        JButton btnManage = createNavButton("⚙️  Manage Data");
 
         content.add(btnSell);
         content.add(btnAddMed);
         content.add(btnAddBrand);
         content.add(btnAddCat);
+        content.add(btnManage);
 
         content.add(Box.createVerticalStrut(20));
         JButton btnLogout = createNavButton("🚪  Logout");
@@ -489,6 +491,8 @@ public class DashboardView extends JFrame {
         JButton btnExit = createNavButton("❌  Exit");
         btnExit.addActionListener(e -> System.exit(0));
         content.add(btnExit);
+
+        btnManage.addActionListener(e -> new ManageMetadataView(this, controller).setVisible(true));
 
         initSidebarListeners(btnHome, btnAll, btnBrands, btnFinance, btnSell, btnAddMed, btnAddBrand, btnAddCat);
         content.add(Box.createVerticalGlue());

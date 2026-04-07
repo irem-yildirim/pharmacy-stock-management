@@ -12,7 +12,8 @@ import java.util.stream.Collectors;
 
 /**
  * Controller katmanı: UI ile Backend arasındaki iş akışını yönetir.
- * Artık direkt Entity modellerini kullanarak gereksiz dönüşüm yükünden kurtulduk.
+ * Artık direkt Entity modellerini kullanarak gereksiz dönüşüm yükünden
+ * kurtulduk.
  */
 public class MedicineController {
 
@@ -20,11 +21,13 @@ public class MedicineController {
     private final CategoryService categoryService;
     private final com.pharmacy.service.SaleService saleService;
     private final com.pharmacy.service.PurchaseService purchaseService;
-    
+
     private final BrandDAO brandDAO;
     private final PresTypeDAO presTypeDAO;
 
-    public MedicineController(DrugService drugService, CategoryService categoryService, com.pharmacy.service.SaleService saleService, com.pharmacy.service.PurchaseService purchaseService, BrandDAO brandDAO, PresTypeDAO presTypeDAO) {
+    public MedicineController(DrugService drugService, CategoryService categoryService,
+            com.pharmacy.service.SaleService saleService, com.pharmacy.service.PurchaseService purchaseService,
+            BrandDAO brandDAO, PresTypeDAO presTypeDAO) {
         this.drugService = drugService;
         this.categoryService = categoryService;
         this.saleService = saleService;
@@ -79,11 +82,10 @@ public class MedicineController {
     public List<Drug> searchMedicines(String keyword) {
         final String kw = keyword.toLowerCase().trim();
         return drugService.getAllDrugs().stream()
-                .filter(d -> d.getName().toLowerCase().contains(kw) || 
-                             String.valueOf(d.getBarcode()).contains(kw) ||
-                             (d.getBrand() != null && d.getBrand().getBrandName().toLowerCase().contains(kw)) ||
-                             (d.getCategory() != null && d.getCategory().getName().toLowerCase().contains(kw))
-                       )
+                .filter(d -> d.getName().toLowerCase().contains(kw) ||
+                        String.valueOf(d.getBarcode()).contains(kw) ||
+                        (d.getBrand() != null && d.getBrand().getBrandName().toLowerCase().contains(kw)) ||
+                        (d.getCategory() != null && d.getCategory().getName().toLowerCase().contains(kw)))
                 .collect(Collectors.toList());
     }
 
@@ -117,10 +119,11 @@ public class MedicineController {
     public boolean sellDrug(String barcode, int quantity) {
         try {
             Drug d = drugService.findByBarcode(barcode);
-            if (d == null) return false;
-            
+            if (d == null)
+                return false;
+
             if (d.getStockQuantity() < quantity) {
-                return false; 
+                return false;
             }
 
             SaleItem item = new SaleItem();
@@ -130,7 +133,7 @@ public class MedicineController {
 
             List<SaleItem> items = new ArrayList<>();
             items.add(item);
-            
+
             saleService.createSale(items);
             return true;
         } catch (Exception e) {
@@ -154,12 +157,13 @@ public class MedicineController {
     // =========================================================================
 
     public static class FinancialTransaction {
-        public final String type; 
+        public final String type;
         public final java.time.LocalDate date;
         public final java.math.BigDecimal amount;
-        public final String reference; 
-        
-        public FinancialTransaction(String type, java.time.LocalDate date, java.math.BigDecimal amount, String reference) {
+        public final String reference;
+
+        public FinancialTransaction(String type, java.time.LocalDate date, java.math.BigDecimal amount,
+                String reference) {
             this.type = type;
             this.date = date;
             this.amount = amount;
@@ -171,14 +175,14 @@ public class MedicineController {
         public final java.math.BigDecimal totalSales;
         public final java.math.BigDecimal totalPurchases;
         public final java.math.BigDecimal netProfit;
-        
+
         public final java.math.BigDecimal todayRevenue;
         public final int lowStockCount;
         public final int expiryCount;
         public final int totalInventory;
 
-        public FinancialSummary(java.math.BigDecimal totalSales, java.math.BigDecimal totalPurchases, 
-                                 java.math.BigDecimal todayRevenue, int lowStockCount, int expiryCount, int totalInventory) {
+        public FinancialSummary(java.math.BigDecimal totalSales, java.math.BigDecimal totalPurchases,
+                java.math.BigDecimal todayRevenue, int lowStockCount, int expiryCount, int totalInventory) {
             this.totalSales = totalSales != null ? totalSales : java.math.BigDecimal.ZERO;
             this.totalPurchases = totalPurchases != null ? totalPurchases : java.math.BigDecimal.ZERO;
             this.netProfit = this.totalSales.subtract(this.totalPurchases);
@@ -193,32 +197,32 @@ public class MedicineController {
         List<Drug> all = getAllMedicines();
         int totalInv = all.size();
         int lowStock = (int) all.stream().filter(m -> m.getStockQuantity() < 10).count();
-        
+
         java.time.LocalDate threshold30 = java.time.LocalDate.now().plusDays(30);
         int expCount = (int) all.stream()
                 .filter(m -> {
                     Expiry exp = m.getExpiry();
-                    return exp != null && exp.getExpirationDate() != null && !exp.getExpirationDate().isAfter(threshold30);
+                    return exp != null && exp.getExpirationDate() != null
+                            && !exp.getExpirationDate().isAfter(threshold30);
                 })
                 .count();
 
         return new FinancialSummary(
-            saleService.calculateTotalSales(), 
-            purchaseService.calculateTotalPurchases(),
-            saleService.calculateTodaySales(),
-            lowStock,
-            expCount,
-            totalInv
-        );
+                saleService.calculateTotalSales(),
+                purchaseService.calculateTotalPurchases(),
+                saleService.calculateTodaySales(),
+                lowStock,
+                expCount,
+                totalInv);
     }
 
     public List<FinancialTransaction> getFinancialTransactions() {
         List<FinancialTransaction> list = new ArrayList<>();
-        
+
         for (Sale s : saleService.getAllSales()) {
             list.add(new FinancialTransaction("SALE", s.getSaleDate(), s.getTotalAmount(), "Sale ID #" + s.getId()));
         }
-        
+
         for (Purchase p : purchaseService.getAllPurchases()) {
             java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
             if (p.getDrug() != null && p.getDrug().getBarcode() != null) {
@@ -227,16 +231,40 @@ public class MedicineController {
                     amount = drug.getCostPrice().multiply(java.math.BigDecimal.valueOf(p.getQuantityAdded()));
                 }
             }
-            list.add(new FinancialTransaction("PURCHASE", p.getPurchaseDate(), amount, "Purchase: " + (p.getDrug() != null ? p.getDrug().getBarcode() : "Unknown")));
+            list.add(new FinancialTransaction("PURCHASE", p.getPurchaseDate(), amount,
+                    "Purchase: " + (p.getDrug() != null ? p.getDrug().getBarcode() : "Unknown")));
         }
-        
-        list.sort((a,b) -> {
-            if (a.date == null && b.date == null) return 0;
-            if (a.date == null) return 1;
-            if (b.date == null) return -1;
+
+        list.sort((a, b) -> {
+            if (a.date == null && b.date == null)
+                return 0;
+            if (a.date == null)
+                return 1;
+            if (b.date == null)
+                return -1;
             return b.date.compareTo(a.date);
         });
-        
+
         return list;
+    }
+
+    // Safe Category Deletion (Returns status message)
+    public String deleteCategorySafely(long categoryId) {
+        List<Drug> linkedDrugs = getMedicinesByCategory(categoryId);
+        if (!linkedDrugs.isEmpty()) {
+            return "This category has linked medicines and cannot be deleted!"; 
+        }
+        categoryService.deleteCategory(categoryId); 
+        return "SUCCESS";
+    }
+
+    // Safe Brand Deletion (Returns status message)
+    public String deleteBrandSafely(long brandId) {
+        List<Drug> linkedDrugs = getMedicinesByBrand(brandId);
+        if (!linkedDrugs.isEmpty()) {
+            return "This brand has linked medicines and cannot be deleted!"; 
+        }
+        brandDAO.delete((int)brandId); 
+        return "SUCCESS";
     }
 }

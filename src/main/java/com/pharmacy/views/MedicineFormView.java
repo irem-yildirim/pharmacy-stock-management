@@ -52,7 +52,7 @@ public class MedicineFormView extends JDialog {
     private final Drug medicine; // null = add mode
     private final DashboardView parent;
 
-    private JTextField nameField, doseField, costField, priceField, qtyField, barcodeField;
+    private JTextField nameField, doseField, costField, priceField, qtyField, barcodeField, expiryField;
     private JComboBox<Category> categoryCombo;
     private JComboBox<Brand> brandCombo;
 
@@ -122,6 +122,7 @@ public class MedicineFormView extends JDialog {
         } else {
             priceField = addField(form, "Selling Price");
             qtyField = addField(form, "Stock Quantity");
+            expiryField = addField(form, "Expiry Date (YYYY-MM-DD)");
         }
 
         form.add(new JLabel("Category") {
@@ -184,18 +185,24 @@ public class MedicineFormView extends JDialog {
             costField.setText(medicine.getCostPrice().toString());
             priceField.setText(medicine.getSellingPrice().toString());
             qtyField.setText(String.valueOf(medicine.getStockQuantity()));
-
-            for (int i = 0; i < categoryCombo.getItemCount(); i++) {
-                if (categoryCombo.getItemAt(i).getId().equals(medicine.getCategory().getId())) {
-                    categoryCombo.setSelectedIndex(i);
-                    break;
+            if (medicine.getExpiry() != null && medicine.getExpiry().getExpirationDate() != null) {
+                expiryField.setText(medicine.getExpiry().getExpirationDate().toString());
+            }
+            if (medicine.getCategory() != null && medicine.getCategory().getId() != null) {
+                for (int i = 0; i < categoryCombo.getItemCount(); i++) {
+                    if (categoryCombo.getItemAt(i).getId().equals(medicine.getCategory().getId())) {
+                        categoryCombo.setSelectedIndex(i);
+                        break;
+                    }
                 }
             }
 
-            for (int i = 0; i < brandCombo.getItemCount(); i++) {
-                if (brandCombo.getItemAt(i).getBrandId() == medicine.getBrand().getBrandId()) {
-                    brandCombo.setSelectedIndex(i);
-                    break;
+            if (medicine.getBrand() != null && medicine.getBrand().getBrandId() != 0) {
+                for (int i = 0; i < brandCombo.getItemCount(); i++) {
+                    if (brandCombo.getItemAt(i).getBrandId() == medicine.getBrand().getBrandId()) {
+                        brandCombo.setSelectedIndex(i);
+                        break;
+                    }
                 }
             }
         }
@@ -275,6 +282,20 @@ public class MedicineFormView extends JDialog {
             d.setStockQuantity(Integer.parseInt(qtyField.getText().trim()));
             d.setCategory((Category) categoryCombo.getSelectedItem());
             d.setBrand((Brand) brandCombo.getSelectedItem());
+
+            String expTxt = expiryField.getText().trim();
+            if (!expTxt.isEmpty()) {
+                try {
+                    java.time.LocalDate expDate = java.time.LocalDate.parse(expTxt);
+                    com.pharmacy.entity.Expiry exp = new com.pharmacy.entity.Expiry();
+                    exp.setExpirationDate(expDate);
+                    d.setExpiry(exp);
+                } catch (java.time.format.DateTimeParseException ex) {
+                    ThemedDialog.showMessage(this, "Please enter date in YYYY-MM-DD format (e.g. 2026-10-15)",
+                            ThemedDialog.Kind.ERROR);
+                    return;
+                }
+            }
 
             if (medicine == null) {
                 controller.addMedicine(d);

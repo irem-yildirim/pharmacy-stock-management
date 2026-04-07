@@ -45,7 +45,19 @@ public class DrugDAO implements BaseDAO<Drug, String> {
                 pstmt.setNull(9, Types.BIGINT);
             }
 
+            // 1. İlaç drug tablosuna eklenir
             pstmt.executeUpdate();
+
+            // 2.Tarihi expiry tablosuna ekle
+            if (drug.getExpiry() != null && drug.getExpiry().getExpirationDate() != null) {
+                String expiryQuery = "INSERT INTO expiry (drug_barcode, expiration_date) VALUES (?, ?)";
+                try (PreparedStatement pstmtExpiry = conn.prepareStatement(expiryQuery)) {
+                    pstmtExpiry.setString(1, drug.getBarcode());
+                    pstmtExpiry.setDate(2, java.sql.Date.valueOf(drug.getExpiry().getExpirationDate()));
+                    pstmtExpiry.executeUpdate(); // Tarih veritabanına işleni
+                }
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -131,7 +143,9 @@ public class DrugDAO implements BaseDAO<Drug, String> {
 
     @Override
     public List<Drug> findAll() {
-        List<Drug> drugs = new ArrayList<>();
+        // Liste yerine Map kullanıyoruz ki aynı barkodluları otomatik elesin
+        java.util.Map<String, Drug> drugMap = new java.util.LinkedHashMap<>();
+
         String query = "SELECT d.*, c.name AS category_name, c.description AS category_description, " +
                 "b.name AS brand_name, " +
                 "p.name AS pres_name, p.level AS pres_level, " +
@@ -141,17 +155,24 @@ public class DrugDAO implements BaseDAO<Drug, String> {
                 "LEFT JOIN brand b ON d.brand_id = b.id " +
                 "LEFT JOIN pres_type p ON d.pres_id = p.id " +
                 "LEFT JOIN expiry e ON d.barcode = e.drug_barcode";
+
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(query);
                 ResultSet rs = pstmt.executeQuery()) {
 
             while (rs.next()) {
-                drugs.add(mapResultSetToDrug(rs));
+                String barcode = rs.getString("barcode");
+                // Eğer bu barkodlu ilaç haritaya daha önce eklenmediyse ekle!
+                if (!drugMap.containsKey(barcode)) {
+                    drugMap.put(barcode, mapResultSetToDrug(rs));
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return drugs;
+
+        // Map'teki tekil (unique) ilaçları List'e çevirip gönderiyoruz
+        return new ArrayList<>(drugMap.values());
     }
 
     private Drug mapResultSetToDrug(ResultSet rs) throws SQLException {
@@ -190,11 +211,11 @@ public class DrugDAO implements BaseDAO<Drug, String> {
             if (sqlDate != null) {
                 java.time.LocalDate expDate = sqlDate.toLocalDate();
                 expiry.setExpirationDate(expDate);
-                
+
                 // Dynamic Calculation
                 long days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), expDate);
                 expiry.setDaysRemaining(days);
-                
+
                 String status = days <= 0 ? "EXPIRED" : (days <= 30 ? "CRITICAL" : "OK");
                 expiry.setStatus(status);
             }
