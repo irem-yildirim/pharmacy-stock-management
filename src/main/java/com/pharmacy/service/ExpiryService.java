@@ -22,7 +22,7 @@ public class ExpiryService {
      * It relies entirely on the Expiry table, completely decoupled from Drug tracking.
      */
     public void refreshExpiry() {
-        System.out.println("[Expiry] Refreshing expiry records...");
+
         List<Expiry> expiries = expiryDAO.findAll();
 
         for (Expiry expiry : expiries) {
@@ -44,25 +44,21 @@ public class ExpiryService {
             expiryDAO.update(expiry);
         }
 
-        System.out.println("[Expiry] Expiry refresh complete. " + expiries.size() + " record(s) processed.");
     }
 
     public List<Expiry> getExpiredDrugs() {
-        System.out.println("[Expiry] Fetching EXPIRED drugs");
         List<Expiry> all = expiryDAO.findAll();
         all.removeIf(e -> !"EXPIRED".equals(e.getStatus()));
         return all;
     }
 
     public List<Expiry> getCriticalDrugs() {
-        System.out.println("[Expiry] Fetching CRITICAL drugs");
         List<Expiry> all = expiryDAO.findAll();
         all.removeIf(e -> !"CRITICAL".equals(e.getStatus()));
         return all;
     }
 
     public List<Expiry> getAllExpiry() {
-        System.out.println("[Expiry] Fetching all expiry records");
         return expiryDAO.findAll();
     }
 }

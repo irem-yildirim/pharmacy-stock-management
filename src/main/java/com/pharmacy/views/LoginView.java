@@ -108,7 +108,7 @@ public class LoginView extends JFrame {
         }
     }
 
-    /// Giriş kontrolleri (Basit yapı)
+    // Giriş kontrolleri
     private void handleLogin(ActionEvent e) {
         User selectedUser = (User) userCombo.getSelectedItem();
         String password = new String(passwordField.getPassword());
@@ -125,7 +125,8 @@ public class LoginView extends JFrame {
                 DashboardView dashboard = new DashboardView(
                     loginController.getInventoryController(),
                     loginController.getTransactionController(),
-                    loginController.getReportController()
+                    loginController.getReportController(),
+                    loginController
                 );
                 dashboard.setVisible(true);
             } else {

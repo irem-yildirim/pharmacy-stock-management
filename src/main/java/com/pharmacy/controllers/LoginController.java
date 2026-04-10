@@ -2,10 +2,11 @@ package com.pharmacy.controllers;
 
 import com.pharmacy.service.UserService;
 import com.pharmacy.entity.User;
-import javax.swing.SwingWorker;
 import java.util.List;
-import java.util.function.Consumer;
 
+/**
+ * Kullanıcı kimlik doğrulamasını ve diğer controller referanslarını yönetir.
+ */
 public class LoginController {
 
     private final UserService userService;
@@ -20,28 +21,6 @@ public class LoginController {
         this.reportController = repC;
     }
 
-    public void loginAsync(String username, String password, Consumer<Boolean> callback) {
-        new SwingWorker<Boolean, Void>() {
-            @Override
-            protected Boolean doInBackground() {
-                try {
-                    return userService.authenticate(username, password);
-                } catch (Exception ex) {
-                    return false;
-                }
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    callback.accept(get());
-                } catch (Exception e) {
-                    callback.accept(false);
-                }
-            }
-        }.execute();
-    }
-
     public boolean login(String username, String password) {
         try {
             return userService.authenticate(username, password);
@@ -54,7 +33,7 @@ public class LoginController {
         return userService.getAllUsers();
     }
 
-    public InventoryController getInventoryController() { return inventoryController; }
+    public InventoryController getInventoryController()   { return inventoryController; }
     public TransactionController getTransactionController() { return transactionController; }
-    public ReportController getReportController() { return reportController; }
+    public ReportController getReportController()         { return reportController; }
 }

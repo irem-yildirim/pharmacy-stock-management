@@ -11,22 +11,26 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-public class ManageMetadataView extends JFrame {
+/**
+ * Marka ve kategori kayıtlarını yönetmek için modal dialog.
+ * JDialog olarak açılır böylece ana pencere ile çakışma olmaz.
+ */
+public class ManageMetadataView extends JDialog {
 
     private final InventoryController controller;
-    
+
     private DefaultListModel<Brand> brandModel;
     private DefaultListModel<Category> catModel;
     private JList<Brand> brandList;
     private JList<Category> catList;
 
     public ManageMetadataView(DashboardView parent, InventoryController controller) {
+        super(parent, "Manage Metadata", true); // true = modal
         this.controller = controller;
-        setTitle("Manage Metadata");
         setSize(800, 600);
         setLocationRelativeTo(parent);
         getContentPane().setBackground(BG_LIGHT);
-        
+
         initComponents();
         loadData();
     }
@@ -39,7 +43,7 @@ public class ManageMetadataView extends JFrame {
         title.setFont(new Font("SansSerif", Font.BOLD, 22));
         title.setForeground(Color.WHITE);
         titlePanel.add(title);
-        
+
         add(titlePanel, BorderLayout.NORTH);
 
         JPanel centerPanel = new JPanel(new GridLayout(1, 2, 10, 10));
@@ -86,12 +90,12 @@ public class ManageMetadataView extends JFrame {
         JPanel p = new JPanel(new BorderLayout(5, 5));
         p.setBackground(BG_WHITE);
         p.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY), title));
-        
+
         JScrollPane sp = new JScrollPane(list);
         sp.setBorder(null);
         p.add(sp, BorderLayout.CENTER);
 
-        if(onDeleteClick != null) {
+        if (onDeleteClick != null) {
             JButton btnDelete = new JButton("Delete Selected");
             btnDelete.setForeground(DANGER);
             btnDelete.addActionListener(e -> onDeleteClick.run());
@@ -102,23 +106,23 @@ public class ManageMetadataView extends JFrame {
 
     private void loadData() {
         brandModel.clear();
-        for(Brand b : controller.getAllBrands()) {
+        for (Brand b : controller.getAllBrands()) {
             brandModel.addElement(b);
         }
-        
+
         catModel.clear();
-        for(Category c : controller.getAllCategories()) {
+        for (Category c : controller.getAllCategories()) {
             catModel.addElement(c);
         }
     }
 
     private void deleteSelectedBrand() {
         Brand sel = brandList.getSelectedValue();
-        if(sel != null) {
+        if (sel != null) {
             int confirm = JOptionPane.showConfirmDialog(this, "Delete brand " + sel.getBrandName() + "?");
-            if(confirm == JOptionPane.YES_OPTION) {
+            if (confirm == JOptionPane.YES_OPTION) {
                 String result = controller.deleteBrandSafely(sel.getBrandId());
-                if("SUCCESS".equals(result)) {
+                if ("SUCCESS".equals(result)) {
                     loadData();
                 } else {
                     ThemedDialog.showMessage(this, result, ThemedDialog.Kind.ERROR);
@@ -129,11 +133,11 @@ public class ManageMetadataView extends JFrame {
 
     private void deleteSelectedCategory() {
         Category sel = catList.getSelectedValue();
-        if(sel != null) {
+        if (sel != null) {
             int confirm = JOptionPane.showConfirmDialog(this, "Delete category " + sel.getName() + "?");
-            if(confirm == JOptionPane.YES_OPTION) {
+            if (confirm == JOptionPane.YES_OPTION) {
                 String result = controller.deleteCategorySafely(sel.getId());
-                if("SUCCESS".equals(result)) {
+                if ("SUCCESS".equals(result)) {
                     loadData();
                 } else {
                     ThemedDialog.showMessage(this, result, ThemedDialog.Kind.ERROR);

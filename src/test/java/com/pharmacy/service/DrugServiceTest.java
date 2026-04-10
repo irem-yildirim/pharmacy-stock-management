@@ -12,31 +12,57 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Week 7 JUNIT 5 tests for DrugService logic.
+ * DrugService unit testleri.
+ * Mock DrugDAO kullanılarak veritabanına bağlanmadan servis mantığı test edilir.
  */
 public class DrugServiceTest {
 
     private DrugService drugService;
     private DrugDAO mockDrugDAO;
 
+    // Test sırasında kaydedilen son ilaç referansını tutarız
+    private Drug lastSavedDrug;
+    private Drug lastUpdatedDrug;
+
     @BeforeEach
     void setUp() {
-        // Mock the DAO to prevent real DB hits during logic test
+        lastSavedDrug = null;
+        lastUpdatedDrug = null;
+
         mockDrugDAO = new DrugDAO() {
             @Override
             public void save(Drug drug) {
-                // simulated save logic
+                lastSavedDrug = drug;
+            }
+
+            @Override
+            public void update(Drug drug) {
+                lastUpdatedDrug = drug;
+            }
+
+            @Override
+            public Drug findById(String barcode) {
+                // Simüle: barkod "EXISTING" ise kayıtlı bir ilaç döndür
+                if ("EXISTING".equals(barcode)) {
+                    Drug existing = new Drug();
+                    existing.setBarcode("EXISTING");
+                    existing.setName("Mevcut İlaç");
+                    existing.setStockQuantity(20);
+                    return existing;
+                }
+                return null;
             }
 
             @Override
             public List<Drug> findAll() {
-                // simulate returning empty list for testing
                 return Collections.emptyList();
             }
         };
+
         drugService = new DrugService(mockDrugDAO);
     }
 
+    // --- Test 1: Yeni ilaç ekleme ---
     @Test
     void testAddDrug_ShouldNotThrowExceptions() {
         Drug drug = new Drug();
@@ -46,17 +72,64 @@ public class DrugServiceTest {
         drug.setSellingPrice(new BigDecimal("15.0"));
         drug.setStockQuantity(100);
 
-        // Ensure business layer allows save properly
         assertDoesNotThrow(() -> drugService.addDrug(drug),
-                "Drug service should add valid drug without errors.");
+                "Geçerli bir ilaç için exception fırlatılmamalı.");
     }
 
+    // --- Test 2: Yeni barkod → save() çağrılmalı ---
+    @Test
+    void testAddDrug_NewBarcode_ShouldCallSave() {
+        Drug drug = new Drug();
+        drug.setBarcode("NEW_BARCODE_99");
+        drug.setName("Yeni İlaç");
+        drug.setCostPrice(new BigDecimal("5.00"));
+        drug.setSellingPrice(new BigDecimal("12.00"));
+        drug.setStockQuantity(50);
+
+        drugService.addDrug(drug);
+
+        assertNotNull(lastSavedDrug, "Yeni barkodlu ilaç için save() çağrılmış olmalı.");
+        assertEquals("NEW_BARCODE_99", lastSavedDrug.getBarcode());
+        assertNull(lastUpdatedDrug, "save() çağrıldığında update() çağrılmamalı.");
+    }
+
+    // --- Test 3: Mevcut barkod → update() çağrılmalı (duplicate önlemi) ---
+    @Test
+    void testAddDrug_ExistingBarcode_ShouldCallUpdate() {
+        Drug drug = new Drug();
+        drug.setBarcode("EXISTING"); // mockDAO bu barkod için mevcut ilaç döndürür
+        drug.setName("Güncellenen İlaç");
+        drug.setCostPrice(new BigDecimal("8.00"));
+        drug.setSellingPrice(new BigDecimal("20.00"));
+        drug.setStockQuantity(30);
+
+        drugService.addDrug(drug);
+
+        assertNotNull(lastUpdatedDrug, "Mevcut barkod için update() çağrılmış olmalı.");
+        assertNull(lastSavedDrug, "update() çağrıldığında save() çağrılmamalı.");
+    }
+
+    // --- Test 4: getAllDrugs boş liste döndürmeli ---
     @Test
     void testGetAllDrugs_ShouldReturnList() {
         List<Drug> results = drugService.getAllDrugs();
 
-        // Assert List structure correctly connects to DAO
-        assertNotNull(results, "Drug list should never be null.");
-        assertTrue(results.isEmpty(), "Mock DB returns empty initially.");
+        assertNotNull(results, "İlaç listesi asla null olmamalı.");
+        assertTrue(results.isEmpty(), "Mock DAO boş liste döndürür.");
+    }
+
+    // --- Test 5: findByBarcode null döndürmeli (bilinmeyen barkod) ---
+    @Test
+    void testFindByBarcode_UnknownBarcode_ShouldReturnNull() {
+        Drug result = drugService.findByBarcode("NONEXISTENT");
+        assertNull(result, "Bilinmeyen barkod için null dönmeli.");
+    }
+
+    // --- Test 6: findByBarcode mevcut ilaç döndürmeli ---
+    @Test
+    void testFindByBarcode_KnownBarcode_ShouldReturnDrug() {
+        Drug result = drugService.findByBarcode("EXISTING");
+        assertNotNull(result, "Mevcut barkod için Drug nesnesi dönmeli.");
+        assertEquals("EXISTING", result.getBarcode());
     }
 }

@@ -1,11 +1,9 @@
 package com.pharmacy.views;
 
+import com.pharmacy.controllers.LoginController;
 import com.pharmacy.controllers.InventoryController;
 import com.pharmacy.controllers.TransactionController;
 import com.pharmacy.controllers.ReportController;
-import com.pharmacy.controllers.LoginController;
-import com.pharmacy.service.UserService;
-import com.pharmacy.dao.UserDAO;
 import com.pharmacy.entity.Brand;
 import com.pharmacy.entity.Category;
 import com.pharmacy.entity.Drug;
@@ -29,15 +27,17 @@ public class DashboardView extends JFrame {
     private final InventoryController inventoryController;
     private final TransactionController transactionController;
     private final ReportController reportController;
+    private final LoginController loginController;
     private final NavigationManager navigationManager;
 
     private JLabel topTitleLabel;
     private JPanel centerWrapper;
 
-    public DashboardView(InventoryController inventoryC, TransactionController transC, ReportController repC) {
+    public DashboardView(InventoryController inventoryC, TransactionController transC, ReportController repC, LoginController loginC) {
         this.inventoryController = inventoryC;
         this.transactionController = transC;
         this.reportController = repC;
+        this.loginController = loginC;
 
         setTitle("Pharmacy Management System");
         setSize(1200, 850);
@@ -177,8 +177,7 @@ public class DashboardView extends JFrame {
         JButton btnLogout = createNavButton("🚪  Logout");
         btnLogout.addActionListener(e -> {
             dispose();
-            new LoginView(new LoginController(new UserService(new UserDAO()), inventoryController,
-                    transactionController, reportController)).setVisible(true);
+            new LoginView(loginController).setVisible(true);
         });
         content.add(btnLogout);
 

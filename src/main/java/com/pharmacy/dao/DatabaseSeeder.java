@@ -214,12 +214,22 @@ public class DatabaseSeeder {
     }
 
     private Drug drug(String barcode, String name, String catId, String brandId, int presId) {
-        Category cat = new Category(); cat.setId(Long.parseLong(catId));
+        Category cat = new Category();
+        cat.setId(Long.parseLong(catId));
         Brand brand = new Brand(Integer.parseInt(brandId), null);
         PresType pres = new PresType(presId, null, 0);
-        // Default random price/stock for demo
-        Drug d = new Drug(barcode, name, new BigDecimal("15.00"), new BigDecimal("35.00"), 50);
-        d.setCategory(cat); d.setBrand(brand); d.setPresType(pres);
-        return d;
+
+        // Builder Pattern: Adım adım, okunabilir ilaç nesne inşası
+        return new com.pharmacy.entity.DrugBuilder()
+                .setBarcode(barcode)
+                .setName(name)
+                .setCostPrice(new BigDecimal("15.00"))
+                .setSellingPrice(new BigDecimal("35.00"))
+                .setStockQuantity(50)
+                .setCategory(cat)
+                .setBrand(brand)
+                .setPresType(pres)
+                .build();
     }
 }
+

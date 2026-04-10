@@ -24,12 +24,12 @@ public class ThemeConstants {
     // Sidebar
     public static final Color SIDEBAR_BG = new Color(0x1B3A4B);
     public static final Color SIDEBAR_HOVER = new Color(0x254F65);
-    public static final Color SIDEBAR_SECTION = new Color(0xFF, 0xFF, 0xFF, 120);
+
 
     // Text
     public static final Color TEXT_PRIMARY = new Color(40, 40, 40);
     public static final Color TEXT_SECONDARY = new Color(110, 110, 110);
-    public static final Color TEXT_WHITE = Color.WHITE;
+
 
     // Tasarım
     public static final int CARD_RADIUS = 18;

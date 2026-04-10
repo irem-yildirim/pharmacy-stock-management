@@ -22,7 +22,7 @@ public class SaleService {
     }
 
     public Sale createSale(List<SaleItem> items) {
-        System.out.println("[Sale] Creating new sale with " + items.size() + " item(s)");
+
 
         BigDecimal total = BigDecimal.ZERO;
         for (SaleItem item : items) {
@@ -51,12 +51,10 @@ public class SaleService {
             saleItemDAO.save(item);
         }
 
-        System.out.println("[Sale] Sale #" + sale.getId() + " created. Total: " + total);
         return sale;
     }
 
     public List<Sale> getAllSales() {
-        System.out.println("[Sale] Fetching all sales");
         return saleDAO.findAll();
     }
 

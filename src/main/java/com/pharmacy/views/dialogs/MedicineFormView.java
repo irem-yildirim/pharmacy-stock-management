@@ -313,15 +313,31 @@ public class MedicineFormView extends JDialog {
                 return;
             }
 
-            Drug d = (medicine == null) ? new Drug() : medicine;
-            d.setBarcode(bcode);
-            d.setName(nameField.getText().trim());
-            d.setCostPrice(new BigDecimal(costField.getText().trim()));
-            d.setSellingPrice(new BigDecimal(priceField.getText().trim()));
-            d.setStockQuantity(Integer.parseInt(qtyField.getText().trim()));
-            d.setCategory((Category) categoryCombo.getSelectedItem());
-            d.setBrand((Brand) brandCombo.getSelectedItem());
-            d.setPresType((PresType) presCombo.getSelectedItem());
+            Drug d;
+            if (medicine == null) {
+                // Factory Pattern: Yeni ilaç için doğrulanmış nesne oluşturma
+                d = com.pharmacy.entity.DrugFactory.createDrug(
+                        bcode,
+                        nameField.getText().trim(),
+                        new BigDecimal(costField.getText().trim()),
+                        new BigDecimal(priceField.getText().trim()),
+                        Integer.parseInt(qtyField.getText().trim()),
+                        (Category) categoryCombo.getSelectedItem(),
+                        (Brand) brandCombo.getSelectedItem(),
+                        (PresType) presCombo.getSelectedItem()
+                );
+            } else {
+                // Düzenleme modunda mevcut nesneyi güncelle
+                d = medicine;
+                d.setBarcode(bcode);
+                d.setName(nameField.getText().trim());
+                d.setCostPrice(new BigDecimal(costField.getText().trim()));
+                d.setSellingPrice(new BigDecimal(priceField.getText().trim()));
+                d.setStockQuantity(Integer.parseInt(qtyField.getText().trim()));
+                d.setCategory((Category) categoryCombo.getSelectedItem());
+                d.setBrand((Brand) brandCombo.getSelectedItem());
+                d.setPresType((PresType) presCombo.getSelectedItem());
+            }
 
             String expTxt = expiryField.getText().trim();
             if (!expTxt.isEmpty()) {
@@ -349,6 +365,7 @@ public class MedicineFormView extends JDialog {
             ThemedDialog.showMessage(this, "Valid numerical values required.", ThemedDialog.Kind.ERROR);
         }
     }
+
 
     private void handleDelete() {
         if (JOptionPane.showConfirmDialog(this, "Delete this item?", "Confirm",

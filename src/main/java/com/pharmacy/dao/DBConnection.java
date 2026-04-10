@@ -40,7 +40,6 @@ public class DBConnection {
             if (connection == null || connection.isClosed()) {
                 Class.forName("com.mysql.cj.jdbc.Driver");
                 connection = DriverManager.getConnection(URL, USER, PASSWORD);
-                System.out.println("[DB] New connection established.");
             }
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();

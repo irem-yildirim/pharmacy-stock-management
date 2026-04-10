@@ -18,7 +18,7 @@ public class PurchaseService {
     }
 
     public Purchase addPurchase(String barcode, int quantity) {
-        System.out.println("[Purchase] Recording purchase: barcode=" + barcode + ", qty=" + quantity);
+
 
         Drug drug = drugDAO.findById(barcode);
         if (drug == null) {
@@ -34,12 +34,10 @@ public class PurchaseService {
         drugDAO.update(drug);
 
         purchaseDAO.save(purchase);
-        System.out.println("[Purchase] Purchase recorded. New stock for " + drug.getName() + ": " + drug.getStockQuantity());
         return purchase;
     }
 
     public List<Purchase> getAllPurchases() {
-        System.out.println("[Purchase] Fetching all purchases");
         return purchaseDAO.findAll();
     }
 
