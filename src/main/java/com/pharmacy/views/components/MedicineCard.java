@@ -16,7 +16,7 @@ import static com.pharmacy.views.components.ThemeConstants.*;
 public class MedicineCard extends JPanel {
 
     public enum ExpiryMode {
-        EXPIRY_URGENT, EXPIRING_SOON, EXPIRY_SAFE
+        EXPIRY_URGENT, EXPIRING_SOON, EXPIRY_SAFE, LOW_STOCK
     }
 
     private final ExpiryMode mode;
@@ -27,9 +27,25 @@ public class MedicineCard extends JPanel {
         this(drug, brandName, presType, ExpiryMode.EXPIRY_SAFE, onUpdate);
     }
 
-    public MedicineCard(Drug drug, String brandName, String presType, ExpiryMode mode,
+    public MedicineCard(Drug drug, String brandName, String presType, ExpiryMode requestedMode,
             Consumer<Drug> onUpdate) {
-        this.mode = mode;
+        
+        // Öncelikli olarak Son Kullanma Tarihi ve Stok Kontrolü yapılır
+        boolean isExpiring = false;
+        if (drug.getExpiry() != null && drug.getExpiry().getExpirationDate() != null) {
+            java.time.LocalDate expDate = drug.getExpiry().getExpirationDate();
+            if (expDate.isBefore(java.time.LocalDate.now().plusDays(30))) {
+                isExpiring = true;
+            }
+        }
+
+        if (isExpiring) {
+            this.mode = ExpiryMode.EXPIRY_URGENT; // Kırmızı Kenarlık
+        } else if (drug.getStockQuantity() < 10) {
+            this.mode = ExpiryMode.LOW_STOCK; // Turuncu Kenarlık
+        } else {
+            this.mode = requestedMode;
+        }
 
         if (presType == null) presType = "";
         if (presType.contains("Green")) {
@@ -143,12 +159,12 @@ public class MedicineCard extends JPanel {
 
         g2.fillRoundRect(0, 0, getWidth() - 2, getHeight() - 2, CARD_RADIUS, CARD_RADIUS);
 
-        if (mode == ExpiryMode.EXPIRY_URGENT) {
-            g2.setColor(new Color(220, 60, 60));
-            g2.setStroke(new BasicStroke(2f));
-        } else if (mode == ExpiryMode.EXPIRING_SOON) {
-            g2.setColor(new Color(240, 140, 50));
-            g2.setStroke(new BasicStroke(2f));
+        if (mode == ExpiryMode.EXPIRY_URGENT || mode == ExpiryMode.EXPIRING_SOON) {
+            g2.setColor(new Color(220, 60, 60)); // Kırmızı (Red)
+            g2.setStroke(new BasicStroke(3f)); // 3 piksel kalınlık
+        } else if (mode == ExpiryMode.LOW_STOCK) {
+            g2.setColor(new Color(255, 152, 0)); // Turuncu (Orange)
+            g2.setStroke(new BasicStroke(3f)); // 3 piksel kalınlık
         } else {
             g2.setColor(new Color(220, 220, 220));
         }

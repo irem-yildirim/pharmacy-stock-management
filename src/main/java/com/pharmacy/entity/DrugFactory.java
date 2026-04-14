@@ -27,6 +27,15 @@ public class DrugFactory {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Medicine name cannot be empty.");
         }
+        if (costPrice == null || costPrice.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Cost price cannot be null or negative.");
+        }
+        if (sellingPrice == null || sellingPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Selling price must be greater than zero.");
+        }
+        if (stockQuantity < 0) {
+            throw new IllegalArgumentException("Stock quantity cannot be negative.");
+        }
 
         Drug drug = new Drug();
         drug.setBarcode(barcode.trim());

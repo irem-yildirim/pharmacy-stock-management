@@ -19,6 +19,9 @@ public class UserService {
 
     // saveUser and deleteUser removed since UI disabled
 
+    /**
+     * Kullanıcı doğrulaması (Düz Metin / Basit versiyon)
+     */
     public boolean authenticate(String username, String password) {
         User user = userDAO.findByUsername(username);
         if (user != null) {

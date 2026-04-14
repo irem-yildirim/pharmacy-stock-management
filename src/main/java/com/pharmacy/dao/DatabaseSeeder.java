@@ -88,6 +88,7 @@ public class DatabaseSeeder {
         if (!isTableEmpty("users")) return;
         UserDAO dao = new UserDAO();
         dao.save(new User(null, "Administrator", "admin@pharmacy.com", "admin", "admin123", "ADMIN"));
+        System.out.println("[Seeder] Admin user created.");
     }
 
     private void seedCategories() {

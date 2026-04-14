@@ -33,7 +33,8 @@ public class DashboardView extends JFrame {
     private JLabel topTitleLabel;
     private JPanel centerWrapper;
 
-    public DashboardView(InventoryController inventoryC, TransactionController transC, ReportController repC, LoginController loginC) {
+    public DashboardView(InventoryController inventoryC, TransactionController transC, ReportController repC,
+            LoginController loginC) {
         this.inventoryController = inventoryC;
         this.transactionController = transC;
         this.reportController = repC;
@@ -199,6 +200,10 @@ public class DashboardView extends JFrame {
             navigationManager.showPage("Brands");
         });
         btnFinance.addActionListener(e -> {
+            if (loginController.getCurrentUser() != null && "STAFF".equals(loginController.getCurrentUser().getRole())) {
+                ThemedDialog.showMessage(DashboardView.this, "Access Denied: Staff role cannot access Finance section.", ThemedDialog.Kind.ERROR);
+                return;
+            }
             setPageTitle("Financial Transactions");
             navigationManager.showPage("Finance");
         });
@@ -206,7 +211,13 @@ public class DashboardView extends JFrame {
         btnSell.addActionListener(
                 e -> new SellDrugDialog(this, transactionController, inventoryController).setVisible(true));
         btnAddMed.addActionListener(e -> openMedicineForm(null));
-        btnManage.addActionListener(e -> new ManageMetadataView(this, inventoryController).setVisible(true));
+        btnManage.addActionListener(e -> {
+            if (loginController.getCurrentUser() != null && "STAFF".equals(loginController.getCurrentUser().getRole())) {
+                ThemedDialog.showMessage(DashboardView.this, "Access Denied: Staff role cannot access Metadata Management.", ThemedDialog.Kind.ERROR);
+                return;
+            }
+            new ManageMetadataView(this, inventoryController).setVisible(true);
+        });
 
         btnAddBrand.addActionListener(e -> {
             String brandName = JOptionPane.showInputDialog(this, "Enter New Brand Name:", "Add Brand",

@@ -18,7 +18,10 @@ public class PurchaseService {
     }
 
     public Purchase addPurchase(String barcode, int quantity) {
-
+        // Defansif Kontrol: Negatif veya sıfır alım miktarı engellenir
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Purchase quantity must be positive. Entered: " + quantity);
+        }
 
         Drug drug = drugDAO.findById(barcode);
         if (drug == null) {

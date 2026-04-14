@@ -179,13 +179,17 @@ public class PurchaseDialog extends JDialog {
         Drug drug = (Drug) selected;
         int qty = (int) quantitySpinner.getValue();
 
-        boolean success = transactionController.purchaseDrug(drug.getBarcode(), qty);
-        if (success) {
-            ThemedDialog.showMessage(this, "Stock purchased successfully!", ThemedDialog.Kind.SUCCESS);
-            dispose();
-            parent.loadTableData();
-        } else {
-            ThemedDialog.showMessage(this, "Failed to purchase stock.", ThemedDialog.Kind.ERROR);
+        try {
+            boolean success = transactionController.purchaseDrug(drug.getBarcode(), qty);
+            if (success) {
+                ThemedDialog.showMessage(this, "Stock purchased successfully!", ThemedDialog.Kind.SUCCESS);
+                dispose();
+                parent.loadTableData();
+            } else {
+                ThemedDialog.showMessage(this, "Failed to purchase stock.", ThemedDialog.Kind.ERROR);
+            }
+        } catch (IllegalArgumentException e) {
+            ThemedDialog.showMessage(this, e.getMessage(), ThemedDialog.Kind.ERROR);
         }
     }
 }

@@ -306,63 +306,116 @@ public class MedicineFormView extends JDialog {
     }
 
     private void handleSave() {
+        // Barkod okuma ve doğrulama işlemi
+        String bcode = barcodeField.getText().trim();
+        if (bcode.isEmpty()) {
+            ThemedDialog.showMessage(this, "Error: Barcode field cannot be empty!", ThemedDialog.Kind.ERROR);
+            return;
+        }
+
+        // İlaç ismi boş bırakıldığında kullanıcıyı uyar
+        String name = nameField.getText().trim();
+        if (name.isEmpty()) {
+            ThemedDialog.showMessage(this, "Error: Medicine name cannot be empty!", ThemedDialog.Kind.ERROR);
+            return;
+        }
+
+        BigDecimal costPrice;
         try {
-            String bcode = barcodeField.getText().trim();
-            if (bcode.isEmpty()) {
-                ThemedDialog.showMessage(this, "Barcode cannot be empty!", ThemedDialog.Kind.ERROR);
+            costPrice = new BigDecimal(costField.getText().trim());
+        } catch (NumberFormatException e) {
+            ThemedDialog.showMessage(this, "Error: Cost Price must be a number!", ThemedDialog.Kind.ERROR);
+            return;
+        }
+
+        BigDecimal sellingPrice;
+        try {
+            sellingPrice = new BigDecimal(priceField.getText().trim());
+        } catch (NumberFormatException e) {
+            ThemedDialog.showMessage(this, "Error: Selling Price must be a number!", ThemedDialog.Kind.ERROR);
+            return;
+        }
+
+        int stockQty;
+        try {
+            stockQty = Integer.parseInt(qtyField.getText().trim());
+        } catch (NumberFormatException e) {
+            ThemedDialog.showMessage(this, "Error: Stock Quantity must be an integer!", ThemedDialog.Kind.ERROR);
+            return;
+        }
+
+        // --- SON KULLANMA TARİHİ KONTROLÜ ---
+        // Kullanıcının ilaç bilgilerini kaydederken tarih girmesi zorunlu kılındı.
+        java.time.LocalDate expDate = null;
+        String expTxt = expiryField.getText().trim();
+        if (expTxt.isEmpty()) {
+             ThemedDialog.showMessage(this, "Error: Expiry Date cannot be empty!", ThemedDialog.Kind.ERROR);
+             return;
+        }
+
+        try {
+            // Girilen metni standart YYYY-MM-DD tarih formatına dönüştürmeyi dene
+            expDate = java.time.LocalDate.parse(expTxt);
+            
+            // Eğer dönüştürülen tarih şu anki zamandan daha eskiyse geçmiş tarihli ilacı reddet
+            if (expDate.isBefore(java.time.LocalDate.now())) {
+                ThemedDialog.showMessage(this, "Error: Cannot add medicine with a past expiry date!", ThemedDialog.Kind.ERROR);
                 return;
             }
+        } catch (java.time.format.DateTimeParseException ex) {
+            // Eğer parse edilemeyen harf gibi garip bir veri girilirse uyar
+            ThemedDialog.showMessage(this, "Error: Date must be in YYYY-MM-DD format (e.g. 2026-10-15)", ThemedDialog.Kind.ERROR);
+            return;
+        }
 
+        try {
             Drug d;
             if (medicine == null) {
-                // Factory Pattern: Yeni ilaç için doğrulanmış nesne oluşturma
+                // Eğer ekran ilk açıldığında medicine (ilaç) boş geldiyse, bu uygulamanın YENİ bir ilaç kaydettiğini gösterir.
+                // Factory (Fabrika) tasarım deseni kullanılarak ilaç nesnesi RAM üzerinde temiz bir şekilde üretiliyor.
                 d = com.pharmacy.entity.DrugFactory.createDrug(
-                        bcode,
-                        nameField.getText().trim(),
-                        new BigDecimal(costField.getText().trim()),
-                        new BigDecimal(priceField.getText().trim()),
-                        Integer.parseInt(qtyField.getText().trim()),
+                        bcode, name, costPrice, sellingPrice, stockQty,
                         (Category) categoryCombo.getSelectedItem(),
                         (Brand) brandCombo.getSelectedItem(),
                         (PresType) presCombo.getSelectedItem()
                 );
             } else {
-                // Düzenleme modunda mevcut nesneyi güncelle
+                // Eğer halihazırda var olan bir ilaca tıklandıysa, veriler MEVCUT ilacın üstüne (update) güncellenir.
                 d = medicine;
                 d.setBarcode(bcode);
-                d.setName(nameField.getText().trim());
-                d.setCostPrice(new BigDecimal(costField.getText().trim()));
-                d.setSellingPrice(new BigDecimal(priceField.getText().trim()));
-                d.setStockQuantity(Integer.parseInt(qtyField.getText().trim()));
+                d.setName(name);
+                d.setCostPrice(costPrice);
+                d.setSellingPrice(sellingPrice);
+                d.setStockQuantity(stockQty);
                 d.setCategory((Category) categoryCombo.getSelectedItem());
                 d.setBrand((Brand) brandCombo.getSelectedItem());
                 d.setPresType((PresType) presCombo.getSelectedItem());
             }
 
-            String expTxt = expiryField.getText().trim();
-            if (!expTxt.isEmpty()) {
-                try {
-                    java.time.LocalDate expDate = java.time.LocalDate.parse(expTxt);
-                    com.pharmacy.entity.Expiry exp = new com.pharmacy.entity.Expiry();
-                    exp.setExpirationDate(expDate);
-                    d.setExpiry(exp);
-                } catch (java.time.format.DateTimeParseException ex) {
-                    ThemedDialog.showMessage(this, "Please enter date in YYYY-MM-DD format (e.g. 2026-10-15)",
-                            ThemedDialog.Kind.ERROR);
-                    return;
-                }
+            if (expDate != null) {
+                com.pharmacy.entity.Expiry exp = new com.pharmacy.entity.Expiry();
+                exp.setExpirationDate(expDate);
+                d.setExpiry(exp);
             }
 
             if (medicine == null) {
+                // Yeni nesne oluşturduğumuz için controller üzerinden doğrudan ADD (Ekle) işlemini tetikle
                 controller.addMedicine(d);
             } else {
+                // Önceden var olan nesneyi düzenlediğimiz için UPDATE (Güncelle) işlemini tetikle
                 controller.updateMedicine(d);
             }
-            ThemedDialog.showMessage(this, "Success!", ThemedDialog.Kind.SUCCESS);
+            
+            // İşlem veritabanında hatasız bittiyse kullanıcıya İngilizce başarı mesajı ver ve ekranı kapat
+            ThemedDialog.showMessage(this, "Transaction completed successfully!", ThemedDialog.Kind.SUCCESS);
             dispose();
+            
+            // Ekran kapanınca arkaplandaki ana JTable panelinin verilerini güncel haliyle tazele
             parent.loadTableData();
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            ThemedDialog.showMessage(this, ex.getMessage(), ThemedDialog.Kind.ERROR);
         } catch (Exception ex) {
-            ThemedDialog.showMessage(this, "Valid numerical values required.", ThemedDialog.Kind.ERROR);
+            ThemedDialog.showMessage(this, "Unexpected error: " + ex.getMessage(), ThemedDialog.Kind.ERROR);
         }
     }
 

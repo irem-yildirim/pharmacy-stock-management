@@ -37,6 +37,8 @@ public class TransactionController {
             items.add(item);
             saleService.createSale(items);
             return true;
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            throw e; // İş kuralı hatalarını View katmanına ilet
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -47,6 +49,8 @@ public class TransactionController {
         try {
             purchaseService.addPurchase(barcode, quantity);
             return true;
+        } catch (IllegalArgumentException e) {
+            throw e; // İş kuralı hatalarını View katmanına ilet
         } catch (Exception e) {
             e.printStackTrace();
             return false;

@@ -178,14 +178,18 @@ public class SellDrugDialog extends JDialog {
         Drug drug = (Drug) selected;
         int qty = (int) quantitySpinner.getValue();
         
-        boolean success = transactionController.sellDrug(drug.getBarcode(), qty);
-        
-        if (success) {
-            ThemedDialog.showMessage(this, "Sale completed successfully!", ThemedDialog.Kind.SUCCESS);
-            dispose();
-            parent.loadTableData();
-        } else {
-            ThemedDialog.showMessage(this, "Sale failed. Please check stock levels.", ThemedDialog.Kind.ERROR);
+        try {
+            boolean success = transactionController.sellDrug(drug.getBarcode(), qty);
+            
+            if (success) {
+                ThemedDialog.showMessage(this, "Sale completed successfully!", ThemedDialog.Kind.SUCCESS);
+                dispose();
+                parent.loadTableData();
+            } else {
+                ThemedDialog.showMessage(this, "Sale failed. Please check stock levels.", ThemedDialog.Kind.ERROR);
+            }
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            ThemedDialog.showMessage(this, e.getMessage(), ThemedDialog.Kind.ERROR);
         }
     }
 }

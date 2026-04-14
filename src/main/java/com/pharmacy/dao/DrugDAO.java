@@ -123,7 +123,7 @@ public class DrugDAO implements BaseDAO<Drug, String> {
             pstmt.setString(1, barcode);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Veritabanı hatası: İşlem geçmişi olan ilaçlar silinemez.", e);
         }
     }
 

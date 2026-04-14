@@ -9,6 +9,10 @@ import com.pharmacy.entity.SaleItem;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * Satış (Sale) işlemlerinin iş kurallarını barındıran servis sınıfı.
+ * Stokları güncelleyip, sepet tutarlarını hesaplayarak satışın veritabanına kaydedilmesini sağlar.
+ */
 public class SaleService {
 
     private final SaleDAO saleDAO;
@@ -21,31 +25,53 @@ public class SaleService {
         this.drugDAO = drugDAO;
     }
 
+    /**
+     * Kullanıcının sepetindeki ürünler için yeni bir satış işlemi başlatır.
+     * Stokları denetler, paraları hesaplar ve veritabanı işlemlerini sırasıyla yürütür.
+     */
     public Sale createSale(List<SaleItem> items) {
 
-
         BigDecimal total = BigDecimal.ZERO;
+        
+        // Sepetteki (items) her bir ürün için tek tek dönüyoruz
         for (SaleItem item : items) {
+            // İlgili satırdaki ürünün toplam fiyatı: Adet x Birim Fiyat
             BigDecimal lineTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
-            total = total.add(lineTotal);
+            total = total.add(lineTotal); // Tüm fiş tutarını biriktiriyoruz
 
             Drug drug = item.getDrug();
             if (drug != null && drug.getBarcode() != null) {
+                // Güvenlik: Satışı yapılacak ilacın veritabanındaki en güncel halini çağır
                 Drug persistedDrug = drugDAO.findById(drug.getBarcode());
                 if (persistedDrug == null) {
                     throw new IllegalArgumentException("Drug not found: " + drug.getBarcode());
                 }
+                
+                // Defansif Kontrol: Stok yeterli mi diye bir son double-check (çifte kontrol) yapılması gerekir
+                if (persistedDrug.getStockQuantity() < item.getQuantity()) {
+                    throw new IllegalStateException(
+                        "Error: Insufficient stock! Medicine: " + persistedDrug.getName() +
+                        " (Available: " + persistedDrug.getStockQuantity() +
+                        ", Requested: " + item.getQuantity() + ")"
+                    );
+                }
+                
+                // İlacı satmaya uygun olduğumuz belgelendiği an ana stoktan adedi dusuruyoruz
                 persistedDrug.setStockQuantity(persistedDrug.getStockQuantity() - item.getQuantity());
                 drugDAO.update(persistedDrug);
+                
+                // Sepetteki objeyi veritabanindan çektigimiz gercek (güncellenmiş stoka sahip) obje ile değiştiriyoruz
                 item.setDrug(persistedDrug);
             }
         }
 
+        // Fişin kendisini oluşturma adımı (Satış Ana Kaydı)
         Sale sale = new Sale();
         sale.setTotalAmount(total);
-        sale.setSaleDate(java.time.LocalDate.now());
+        sale.setSaleDate(java.time.LocalDate.now()); // Satış tarihini bugüne sabitle
         saleDAO.save(sale);
 
+        // Satışın içindeki detay eşyaları (Satış Alt Kayıtları/Fiş kalemleri) ayrı tabloya kaydet
         for (SaleItem item : items) {
             item.setSale(sale);
             saleItemDAO.save(item);

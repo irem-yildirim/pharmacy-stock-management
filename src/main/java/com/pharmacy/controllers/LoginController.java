@@ -13,6 +13,7 @@ public class LoginController {
     private final InventoryController inventoryController;
     private final TransactionController transactionController;
     private final ReportController reportController;
+    private User currentUser;
 
     public LoginController(UserService userService, InventoryController invC, TransactionController transC, ReportController repC) {
         this.userService = userService;
@@ -23,7 +24,11 @@ public class LoginController {
 
     public boolean login(String username, String password) {
         try {
-            return userService.authenticate(username, password);
+            boolean isValid = userService.authenticate(username, password);
+            if (isValid) {
+                this.currentUser = userService.getUserByUsername(username);
+            }
+            return isValid;
         } catch (Exception e) {
             return false;
         }
@@ -36,4 +41,8 @@ public class LoginController {
     public InventoryController getInventoryController()   { return inventoryController; }
     public TransactionController getTransactionController() { return transactionController; }
     public ReportController getReportController()         { return reportController; }
+    
+    public User getCurrentUser() {
+        return currentUser;
+    }
 }

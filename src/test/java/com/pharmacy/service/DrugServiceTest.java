@@ -66,7 +66,7 @@ public class DrugServiceTest {
     @Test
     void testAddDrug_ShouldNotThrowExceptions() {
         Drug drug = new Drug();
-        drug.setBarcode("TEST12345");
+        drug.setBarcode("TEST1234");
         drug.setName("Aspirin Test");
         drug.setCostPrice(new BigDecimal("10.0"));
         drug.setSellingPrice(new BigDecimal("15.0"));
@@ -80,7 +80,7 @@ public class DrugServiceTest {
     @Test
     void testAddDrug_NewBarcode_ShouldCallSave() {
         Drug drug = new Drug();
-        drug.setBarcode("NEW_BARCODE_99");
+        drug.setBarcode("NEWBARCO");
         drug.setName("Yeni İlaç");
         drug.setCostPrice(new BigDecimal("5.00"));
         drug.setSellingPrice(new BigDecimal("12.00"));
@@ -89,13 +89,13 @@ public class DrugServiceTest {
         drugService.addDrug(drug);
 
         assertNotNull(lastSavedDrug, "Yeni barkodlu ilaç için save() çağrılmış olmalı.");
-        assertEquals("NEW_BARCODE_99", lastSavedDrug.getBarcode());
+        assertEquals("NEWBARCO", lastSavedDrug.getBarcode());
         assertNull(lastUpdatedDrug, "save() çağrıldığında update() çağrılmamalı.");
     }
 
-    // --- Test 3: Mevcut barkod → update() çağrılmalı (duplicate önlemi) ---
+    // --- Test 3: Mevcut barkod → IllegalArgumentException fırlatılmalı (duplicate önlemi) ---
     @Test
-    void testAddDrug_ExistingBarcode_ShouldCallUpdate() {
+    void testAddDrug_ExistingBarcode_ShouldThrowException() {
         Drug drug = new Drug();
         drug.setBarcode("EXISTING"); // mockDAO bu barkod için mevcut ilaç döndürür
         drug.setName("Güncellenen İlaç");
@@ -103,10 +103,13 @@ public class DrugServiceTest {
         drug.setSellingPrice(new BigDecimal("20.00"));
         drug.setStockQuantity(30);
 
-        drugService.addDrug(drug);
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            drugService.addDrug(drug);
+        });
 
-        assertNotNull(lastUpdatedDrug, "Mevcut barkod için update() çağrılmış olmalı.");
-        assertNull(lastSavedDrug, "update() çağrıldığında save() çağrılmamalı.");
+        assertTrue(exception.getMessage().contains("already exists"));
+        assertNull(lastSavedDrug, "Exception fırlatıldığında save() çağrılmamalı.");
+        assertNull(lastUpdatedDrug, "Yeni kurala göre addDrug içinde update() çağrılmamalı.");
     }
 
     // --- Test 4: getAllDrugs boş liste döndürmeli ---
@@ -121,7 +124,7 @@ public class DrugServiceTest {
     // --- Test 5: findByBarcode null döndürmeli (bilinmeyen barkod) ---
     @Test
     void testFindByBarcode_UnknownBarcode_ShouldReturnNull() {
-        Drug result = drugService.findByBarcode("NONEXISTENT");
+        Drug result = drugService.findByBarcode("NONEXIST");
         assertNull(result, "Bilinmeyen barkod için null dönmeli.");
     }
 
