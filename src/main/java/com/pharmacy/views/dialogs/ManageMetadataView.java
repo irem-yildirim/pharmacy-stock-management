@@ -13,28 +13,30 @@ import java.awt.*;
 
 /**
  * Marka ve kategori kayıtlarını yönetmek için modal dialog.
- * JDialog olarak açılır böylece ana pencere ile çakışma olmaz.
+ * Sadece ADMIN/PHARMACİST rolleri erişebiliyor — STAFF bu menüyü göremez.
  */
 public class ManageMetadataView extends JDialog {
 
     private final InventoryController controller;
 
+    // Ekranda görünen iki liste için veri modelleri
     private DefaultListModel<Brand> brandModel;
     private DefaultListModel<Category> catModel;
     private JList<Brand> brandList;
     private JList<Category> catList;
 
     public ManageMetadataView(DashboardView parent, InventoryController controller) {
-        super(parent, "Manage Metadata", true); // true = modal
+        super(parent, "Manage Metadata", true); // true = arka planı kilitle (modal)
         this.controller = controller;
         setSize(800, 600);
         setLocationRelativeTo(parent);
         getContentPane().setBackground(BG_LIGHT);
 
         initComponents();
-        loadData();
+        loadData(); // Açılınca marka ve kategorileri veritabanından çek
     }
 
+    // Ekranı oluşturuyoruz: sol = markalar, sağ = kategoriler
     private void initComponents() {
         setLayout(new BorderLayout(10, 10));
         JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -54,6 +56,7 @@ public class ManageMetadataView extends JDialog {
         catModel = new DefaultListModel<>();
 
         brandList = createStyledList(brandModel);
+        // Listede sadece marka adını göster
         brandList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -64,6 +67,7 @@ public class ManageMetadataView extends JDialog {
         });
 
         catList = createStyledList(catModel);
+        // Listede sadece kategori adını göster
         catList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -73,12 +77,14 @@ public class ManageMetadataView extends JDialog {
             }
         });
 
+        // Her iki liste için aynı panel yapısını kullanıyoruz — Runnable ile silme aksiyonunu geçiyoruz
         centerPanel.add(createColumn("Brands", brandList, () -> deleteSelectedBrand()));
         centerPanel.add(createColumn("Categories", catList, () -> deleteSelectedCategory()));
 
         add(centerPanel, BorderLayout.CENTER);
     }
 
+    // Liste bileşeni için standart stil şablonu
     private <T> JList<T> createStyledList(DefaultListModel<T> model) {
         JList<T> list = new JList<>(model);
         list.setFont(FONT_BODY);
@@ -86,6 +92,7 @@ public class ManageMetadataView extends JDialog {
         return list;
     }
 
+    // Başlıklı, kaydırılabilir, "Delete" butonlu panel şablonu — hem marka hem kategori için kullanılıyor
     private JPanel createColumn(String title, JList<?> list, Runnable onDeleteClick) {
         JPanel p = new JPanel(new BorderLayout(5, 5));
         p.setBackground(BG_WHITE);
@@ -104,6 +111,7 @@ public class ManageMetadataView extends JDialog {
         return p;
     }
 
+    // Veritabanından tüm marka ve kategorileri çekip listelere yüklüyoruz
     private void loadData() {
         brandModel.clear();
         for (Brand b : controller.getAllBrands()) {
@@ -116,6 +124,7 @@ public class ManageMetadataView extends JDialog {
         }
     }
 
+    // Seçili markayı silmeden önce onay soruyor — yanlışlıkla silmelerin önüne geçmek için
     private void deleteSelectedBrand() {
         Brand sel = brandList.getSelectedValue();
         if (sel != null) {
@@ -123,7 +132,7 @@ public class ManageMetadataView extends JDialog {
             if (confirm == JOptionPane.YES_OPTION) {
                 String result = controller.deleteBrandSafely(sel.getBrandId());
                 if ("SUCCESS".equals(result)) {
-                    loadData();
+                    loadData(); // Silme başarılıysa listeyi yenile
                 } else {
                     ThemedDialog.showMessage(this, result, ThemedDialog.Kind.ERROR);
                 }
@@ -131,6 +140,7 @@ public class ManageMetadataView extends JDialog {
         }
     }
 
+    // Seçili kategoriyi silmeden önce onay soruyor — ilaçla bağlıysa silinmeye izin verilmez
     private void deleteSelectedCategory() {
         Category sel = catList.getSelectedValue();
         if (sel != null) {

@@ -19,15 +19,17 @@ public class ExpiryService {
 
     /**
      * Refreshes the daysRemaining and status for all Expiry records.
-     * It relies entirely on the Expiry table, completely decoupled from Drug tracking.
+     * It relies entirely on the Expiry table, completely decoupled from Drug
+     * tracking.
      */
     public void refreshExpiry() {
 
         List<Expiry> expiries = expiryDAO.findAll();
 
         for (Expiry expiry : expiries) {
-            if (expiry.getExpirationDate() == null) continue;
-            
+            if (expiry.getExpirationDate() == null)
+                continue;
+
             long daysRemaining = ChronoUnit.DAYS.between(LocalDate.now(), expiry.getExpirationDate());
 
             String status;

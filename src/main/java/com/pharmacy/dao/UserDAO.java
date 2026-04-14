@@ -5,8 +5,10 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+// Kullanıcı verilerini veritabanında yöneten DAO sınıfı
 public class UserDAO implements BaseDAO<User, Long> {
 
+    // UI üzerinden kullanıcı oluşturulması kasıtlı olarak kapatılmış — sadece Seeder ekliyor
     @Override
     public void save(User user) {
         throw new UnsupportedOperationException("User creation via UI is disabled.");
@@ -22,6 +24,7 @@ public class UserDAO implements BaseDAO<User, Long> {
         throw new UnsupportedOperationException("User deletion via UI is disabled.");
     }
 
+    // ID ile tek bir kullanıcı kaydı getiriyoruz
     @Override
     public User findById(Long id) {
         String query = "SELECT * FROM users WHERE id=?";
@@ -39,6 +42,7 @@ public class UserDAO implements BaseDAO<User, Long> {
         return null;
     }
 
+    // Login ekranı için kullanıcı adına göre tek kullanıcı getiriyoruz
     public User findByUsername(String username) {
         String query = "SELECT * FROM users WHERE username=?";
         try (Connection conn = DBConnection.getInstance().getConnection();
@@ -55,6 +59,7 @@ public class UserDAO implements BaseDAO<User, Long> {
         return null;
     }
 
+    // Login ekranındaki dropdown için tüm kullanıcıları getiriyoruz
     @Override
     public List<User> findAll() {
         List<User> users = new ArrayList<>();
@@ -71,6 +76,7 @@ public class UserDAO implements BaseDAO<User, Long> {
         return users;
     }
 
+    // SQL sonucunu User nesnesine dönüştüren yardımcı metot
     private User mapResultSetToUser(ResultSet rs) throws SQLException {
         User user = new User();
         user.setId(rs.getLong("id"));

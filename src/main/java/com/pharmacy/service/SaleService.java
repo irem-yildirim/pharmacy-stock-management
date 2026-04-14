@@ -17,6 +17,7 @@ public class SaleService {
 
     private final SaleDAO saleDAO;
     private final SaleItemDAO saleItemDAO;
+    // Stok düşürme işlemi için ilaç bilgisine ihtiyaç var, o yüzden drugDAO da burada
     private final DrugDAO drugDAO;
 
     public SaleService(SaleDAO saleDAO, SaleItemDAO saleItemDAO, DrugDAO drugDAO) {
@@ -44,6 +45,7 @@ public class SaleService {
                 // Güvenlik: Satışı yapılacak ilacın veritabanındaki en güncel halini çağır
                 Drug persistedDrug = drugDAO.findById(drug.getBarcode());
                 if (persistedDrug == null) {
+                    // İlaç veritabanında yoksa satışı durdur
                     throw new IllegalArgumentException("Drug not found: " + drug.getBarcode());
                 }
                 
@@ -56,11 +58,11 @@ public class SaleService {
                     );
                 }
                 
-                // İlacı satmaya uygun olduğumuz belgelendiği an ana stoktan adedi dusuruyoruz
+                // İlacı satmaya uygun olduğumuz belgelendiği an ana stoktan adedi düşürüyoruz
                 persistedDrug.setStockQuantity(persistedDrug.getStockQuantity() - item.getQuantity());
                 drugDAO.update(persistedDrug);
                 
-                // Sepetteki objeyi veritabanindan çektigimiz gercek (güncellenmiş stoka sahip) obje ile değiştiriyoruz
+                // Sepetteki objeyi veritabanından çektiğimiz gerçek (güncellenmiş stoka sahip) obje ile değiştiriyoruz
                 item.setDrug(persistedDrug);
             }
         }
@@ -80,10 +82,12 @@ public class SaleService {
         return sale;
     }
 
+    // Tüm geçmiş satışları listeler — Finans raporu için kullanılıyor
     public List<Sale> getAllSales() {
         return saleDAO.findAll();
     }
 
+    // Bugüne kadar yapılan tüm satışların toplam tutarını hesaplar
     public BigDecimal calculateTotalSales() {
         BigDecimal total = BigDecimal.ZERO;
         for (Sale s : getAllSales()) {
@@ -94,10 +98,12 @@ public class SaleService {
         return total;
     }
 
+    // Sadece bugün yapılan satışların toplam tutarını hesaplar — Dashboard'daki "Revenue" kartı için
     public BigDecimal calculateTodaySales() {
         java.time.LocalDate today = java.time.LocalDate.now();
         BigDecimal total = BigDecimal.ZERO;
         for (Sale s : getAllSales()) {
+            // Satışın tarihi bugünkü tarihle eşleşiyorsa toplamaya ekle
             if (today.equals(s.getSaleDate()) && s.getTotalAmount() != null) {
                 total = total.add(s.getTotalAmount());
             }

@@ -12,8 +12,10 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 
+// Alış ve satış işlemlerini kronolojik olarak listeleyen, CSV'ye aktarabilen finans sayfası
 public class FinancePage extends AbstractPage {
 
+    // Finans tablomuz — her satır bir işlem kaydı (satış veya alım)
     private final JTable table;
     private final DefaultTableModel model;
 
@@ -23,7 +25,9 @@ public class FinancePage extends AbstractPage {
         getContainer().setBorder(new EmptyBorder(24, 24, 24, 24));
         getContainer().setBackground(BG_LIGHT);
 
+        // Tablonun sütun başlıkları
         String[] cols = { "Date", "Type", "Reference", "Amount (TL)" };
+        // isCellEditable false döndürüyor — kullanıcı hücreyi düzenlemesin!
         model = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int r, int c) {
@@ -40,7 +44,7 @@ public class FinancePage extends AbstractPage {
 
         getContainer().add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // Export Button Panel
+        // Alt panel — CSV butonu sağa yaslanmış
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottomPanel.setBackground(BG_LIGHT);
         JButton btnExport = new JButton("Export to CSV");
@@ -48,6 +52,7 @@ public class FinancePage extends AbstractPage {
         btnExport.setBackground(new Color(40, 140, 80));
         btnExport.setForeground(Color.WHITE);
         btnExport.setFocusPainted(false);
+        // Butona basılınca tablodaki verileri masaüstüne .csv olarak kaydediyoruz
         btnExport.addActionListener(e -> exportToCSV(parent));
         bottomPanel.add(btnExport);
 
@@ -61,37 +66,37 @@ public class FinancePage extends AbstractPage {
     private void exportToCSV(DashboardView parentView) {
         // Masaüstü dizinini bulup dosyanın tam yolunu ayarlıyoruz
         String desktopPath = System.getProperty("user.home") + "/Desktop/finance_export.csv";
-        
+
         // Try-with-resources: Dosya yazma işlemi bittikten sonra yazıcıyı otomatik kapatır
         try (java.io.FileWriter writer = new java.io.FileWriter(desktopPath)) {
-            // Adım 1: Sütun Başlıkları (Header). Tablonun en üst kısmındaki Date, Type gibi sütun isimlerini yazdırırız.
+            // Adım 1: Sütun başlıklarını virgülle ayırarak yaz
             for (int i = 0; i < model.getColumnCount(); i++) {
                 writer.append(model.getColumnName(i));
                 if (i < model.getColumnCount() - 1) writer.append(",");
             }
-            writer.append("\n"); // Satır sonuna gelince alt satıra in
+            writer.append("\n");
 
-            // Adım 2: Veriler. Tablonun satır ve sütunlarını sırayla gezerek değerleri çıkar.
+            // Adım 2: Tablo satırlarını tek tek gezerek verileri yaz
             for (int i = 0; i < model.getRowCount(); i++) {
                 for (int j = 0; j < model.getColumnCount(); j++) {
                     Object val = model.getValueAt(i, j);
-                    // Sayılardaki olası virgülleri sil (CSV formatını bozmasın diye)
+                    // Sayılardaki virgülleri sil ki CSV formatı bozulmasın
                     writer.append(val != null ? val.toString().replace(",", "") : "");
                     if (j < model.getColumnCount() - 1) writer.append(",");
                 }
                 writer.append("\n");
             }
-            // Başarılı olursa kullanıcıya fırlatılacak ekran uyarısı
             com.pharmacy.views.components.ThemedDialog.showMessage(parentView, "Export successfully saved to Desktop!", com.pharmacy.views.components.ThemedDialog.Kind.SUCCESS);
         } catch (java.io.IOException ex) {
-            // Eğer yazma işleminde (yetki olmaması, diskin dolu olması vb) sorun çıkarsa yakala ve hata fırlat
+            // Yetki veya disk sorunu olursa kullanıcıya hata göster — program çökmesin
             com.pharmacy.views.components.ThemedDialog.showMessage(parentView, "Error exporting CSV: " + ex.getMessage(), com.pharmacy.views.components.ThemedDialog.Kind.ERROR);
         }
     }
 
+    // Sayfaya her girildiğinde tabloyu sıfırlayıp veritabanından taze işlemleri yükle
     @Override
     public void onPageEnter() {
-        model.setRowCount(0);
+        model.setRowCount(0); // Eski satırları temizle
         try {
             List<ReportController.FinancialTransaction> trans = reportController.getFinancialTransactions();
             for (ReportController.FinancialTransaction tx : trans) {

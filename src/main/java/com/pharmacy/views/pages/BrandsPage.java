@@ -13,8 +13,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
+// Sisteme kayıtlı tüm markaları kart görünümünde listeleyen sayfa
 public class BrandsPage extends AbstractPage {
 
+    // Marka kartlarının 3'lü grid olarak dizildiği panel
     private final JPanel grid;
 
     public BrandsPage(DashboardView parent, InventoryController invC, TransactionController transC,
@@ -39,10 +41,12 @@ public class BrandsPage extends AbstractPage {
         getContainer().add(scroll, BorderLayout.CENTER);
     }
 
+    // Sayfaya girilince tüm markaları çekip karttaları dinamik oluşturuyoruz
     @Override
     public void onPageEnter() {
         grid.removeAll();
         for (Brand b : inventoryController.getAllBrands()) {
+            // Her marka için bir kart oluşturuyoruz
             JPanel card = new JPanel(new BorderLayout());
             card.setBackground(BG_WHITE);
             card.setBorder(BorderFactory.createCompoundBorder(
@@ -51,6 +55,8 @@ public class BrandsPage extends AbstractPage {
 
             JLabel name = new JLabel(b.getBrandName());
             name.setFont(FONT_HEADER);
+
+            // O markaya ait ilaçların isimlerini alt alta (HTML ile) göstermen için birleştiriyoruz
             String drugNames = inventoryController.getMedicinesByBrand(b.getBrandId()).stream()
                     .map(Drug::getName)
                     .reduce((med1, med2) -> med1 + "<br>" + med2)
@@ -68,6 +74,7 @@ public class BrandsPage extends AbstractPage {
 
             card.add(infoPanel, BorderLayout.CENTER);
 
+            // "Buy Stock" butonuna basılınca o markaya ait PurchaseDialog açılıyor
             JButton buyBtn = createPrimaryButton("Buy Stock");
             buyBtn.addActionListener(
                     e -> new PurchaseDialog(parent, transactionController, inventoryController, b.getBrandId())
@@ -80,15 +87,16 @@ public class BrandsPage extends AbstractPage {
     }
 
     @Override
-    public void onPageExit() {
-    }
+    public void onPageExit() {}
 
+    // Markalar sayfasındaki renkli yuvarlak köşeli buton şablonu
     private JButton createPrimaryButton(String text) {
         JButton btn = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // Basılıysa koyu, üstündeyse açık, normalinde ana renk
                 g2.setColor(getModel().isArmed() ? ACCENT_DARK : getModel().isRollover() ? ACCENT_HOVER : ACCENT);
                 g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.dispose();

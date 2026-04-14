@@ -11,8 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Finansal analizleri, toplam stok raporlarını çıkartır. 
- * (Single Responsibility Principle)
+ * Finansal analizleri, toplam stok raporlarını çıkartır.
+ * Ana ekrandaki istatistik kartları ve Finans sayfası buradan besleniyor.
  */
 public class ReportController {
     private final SaleService saleService;
@@ -25,6 +25,7 @@ public class ReportController {
         this.drugService = drugService;
     }
 
+    // Ana ekrandaki istatistik kutularına (Revenue, Low Stock vs.) veri taşıyan yapı
     public static class FinancialTransaction {
         public final String type;
         public final LocalDate date;
@@ -39,9 +40,11 @@ public class ReportController {
         }
     }
 
+    // Dashboard'daki özet paneli besleyen veri nesnesi
     public static class FinancialSummary {
         public final BigDecimal totalSales;
         public final BigDecimal totalPurchases;
+        // Net kar = toplam satış - toplam alım maliyeti
         public final BigDecimal netProfit;
         public final BigDecimal todayRevenue;
         public final int lowStockCount;
@@ -52,6 +55,7 @@ public class ReportController {
                 BigDecimal todayRevenue, int lowStockCount, int expiryCount, int totalInventory) {
             this.totalSales = totalSales != null ? totalSales : BigDecimal.ZERO;
             this.totalPurchases = totalPurchases != null ? totalPurchases : BigDecimal.ZERO;
+            // Kar hesabı burada yapılıyor — satıştan alımı çıkarıyoruz
             this.netProfit = this.totalSales.subtract(this.totalPurchases);
             this.todayRevenue = todayRevenue != null ? todayRevenue : BigDecimal.ZERO;
             this.lowStockCount = lowStockCount;
@@ -60,17 +64,21 @@ public class ReportController {
         }
     }
 
+    // Tüm ilaçları gez, düşük stokları ve yaklaşan son kullanma tarihlerini say, özet döndür
     public FinancialSummary getFinancialSummary() {
         List<Drug> all = drugService.getAllDrugs();
         int totalInv = all.size();
         int lowStock = 0;
         int expCount = 0;
+        // 30 günden az kalan ilaçlar "kritik" sayılıyor
         LocalDate threshold30 = LocalDate.now().plusDays(30);
 
         for (Drug m : all) {
+            // Stok 10'un altına düştüyse sayaca ekle
             if (m.getStockQuantity() < 10) {
                 lowStock++;
             }
+            // Son kullanma tarihi 30 gün içindeyse sayaca ekle
             Expiry exp = m.getExpiry();
             if (exp != null && exp.getExpirationDate() != null && !exp.getExpirationDate().isAfter(threshold30)) {
                 expCount++;
@@ -86,13 +94,16 @@ public class ReportController {
                 totalInv);
     }
 
+    // Finans sayfasındaki tablo için satış ve alımları birleştirip tarihe göre sıralıyoruz
     public List<FinancialTransaction> getFinancialTransactions() {
         List<FinancialTransaction> list = new ArrayList<>();
 
+        // Tüm satışları tabloya ekle
         for (Sale s : saleService.getAllSales()) {
             list.add(new FinancialTransaction("SALE", s.getSaleDate(), s.getTotalAmount(), "Sale ID #" + s.getId()));
         }
 
+        // Tüm alımları tabloya ekle — tutarı ilaç maliyet fiyatından hesaplıyoruz
         for (Purchase p : purchaseService.getAllPurchases()) {
             BigDecimal amount = BigDecimal.ZERO;
             if (p.getDrug() != null && p.getDrug().getBarcode() != null) {
@@ -105,6 +116,7 @@ public class ReportController {
                     "Purchase: " + (p.getDrug() != null ? p.getDrug().getBarcode() : "Unknown")));
         }
 
+        // Tarihe göre en yeni işlem önce gelsin diye ters sıralıyoruz
         list.sort((a, b) -> {
             if (a.date == null && b.date == null) return 0;
             if (a.date == null) return 1;

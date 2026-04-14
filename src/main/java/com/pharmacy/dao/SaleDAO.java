@@ -5,19 +5,21 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+// Satış (sale) tablosunun veritabanı işlemlerini yöneten DAO sınıfı
 public class SaleDAO implements BaseDAO<Sale, Long> {
 
+    // Yeni bir satış kaydı oluşturuyor ve veritabanının ürettiği ID'yi geri alıyoruz
     @Override
     public void save(Sale sale) {
         String query = "INSERT INTO sale (total_amount, sale_date) VALUES (?, ?)";
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
-            
+
             pstmt.setBigDecimal(1, sale.getTotalAmount());
             pstmt.setDate(2, sale.getSaleDate() != null ? Date.valueOf(sale.getSaleDate()) : null);
-            
             pstmt.executeUpdate();
 
+            // Veritabanı AUTO_INCREMENT ile ürettiği ID'yi geri alıp objeye atıyoruz
             try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     sale.setId(generatedKeys.getLong(1));
@@ -33,11 +35,9 @@ public class SaleDAO implements BaseDAO<Sale, Long> {
         String query = "UPDATE sale SET total_amount=?, sale_date=? WHERE id=?";
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
-            
             pstmt.setBigDecimal(1, sale.getTotalAmount());
             pstmt.setDate(2, sale.getSaleDate() != null ? Date.valueOf(sale.getSaleDate()) : null);
             pstmt.setLong(3, sale.getId());
-            
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -56,6 +56,7 @@ public class SaleDAO implements BaseDAO<Sale, Long> {
         }
     }
 
+    // ID ile tek bir satışı getiriyoruz
     @Override
     public Sale findById(Long id) {
         String query = "SELECT * FROM sale WHERE id=?";
@@ -73,6 +74,7 @@ public class SaleDAO implements BaseDAO<Sale, Long> {
         return null;
     }
 
+    // Tüm satışları listeliyoruz — Finans sayfası ve hesaplamalar için
     @Override
     public List<Sale> findAll() {
         List<Sale> sales = new ArrayList<>();
@@ -89,6 +91,7 @@ public class SaleDAO implements BaseDAO<Sale, Long> {
         return sales;
     }
 
+    // SQL satırını Sale nesnesine çeviriyoruz
     private Sale mapResultSetToSale(ResultSet rs) throws SQLException {
         Sale s = new Sale();
         s.setId(rs.getLong("id"));

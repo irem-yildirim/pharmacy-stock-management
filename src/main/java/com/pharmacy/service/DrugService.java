@@ -6,7 +6,6 @@ import com.pharmacy.entity.Drug;
 import java.math.BigDecimal;
 import java.util.List;
 
-
 /**
  * İlaçların (Drug) veritabanı işlemlerini ve iş kurallarını (business logic) yöneten servis katmanı.
  * Ekleme, güncelleme, silme ve doğrulama gibi işlemleri merkezileştirir.
@@ -59,15 +58,19 @@ public class DrugService {
         if (drug.getBarcode() == null || drug.getBarcode().trim().length() != 8) {
             throw new IllegalArgumentException("Error: Medicine barcode must be exactly 8 characters long.");
         }
+        // İlacın ismi girilmeden geçilemez
         if (drug.getName() == null || drug.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Error: Medicine name cannot be empty.");
         }
+        // Eczaneye geliş (alış) fiyatı sıfırın altına düşemez (zararına bile bedavaya alınmaz)
         if (drug.getCostPrice() == null || drug.getCostPrice().compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Error: Cost price cannot be less than 0.");
         }
+        // Satış fiyatı zorunlu olarak sıfırdan büyük olmalıdır
         if (drug.getSellingPrice() == null || drug.getSellingPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Error: Selling price must be greater than 0.");
         }
+        // Ortada olmayan eksi (-) bir stok miktarı olamaz
         if (drug.getStockQuantity() < 0) {
             throw new IllegalArgumentException("Error: Stock quantity cannot be negative.");
         }
@@ -90,10 +93,12 @@ public class DrugService {
         }
     }
 
+    // Bütün ilaçları veritabanından çekip liste olarak döndürür
     public List<Drug> getAllDrugs() {
         return drugDAO.findAll();
     }
 
+    // Sadece spesifik bir barkoda ait ilacı bulmak için kullanılır
     public Drug findByBarcode(String barcode) {
         return drugDAO.findById(barcode);
     }

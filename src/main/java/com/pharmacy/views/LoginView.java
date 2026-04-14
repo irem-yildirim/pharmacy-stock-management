@@ -11,8 +11,10 @@ import java.awt.event.ActionEvent;
 
 import static com.pharmacy.views.components.ThemeConstants.*;
 
+// Uygulamanın ilk ekranı — kullanıcı kimliğini doğrulamadan içeri giremez
 public class LoginView extends JFrame {
     private final LoginController loginController;
+    // Kullanıcıyı açılır listeden seçtiriyoruz, şifreyi de buraya giriyor
     private JComboBox<User> userCombo;
     private JPasswordField passwordField;
     private RoundedButton loginButton;
@@ -23,12 +25,13 @@ public class LoginView extends JFrame {
         setTitle("Pharmacy Management System - Login");
         setSize(360, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
+        setLocationRelativeTo(null); // Ekranın ortasında açılsın
         setResizable(false);
         getContentPane().setBackground(SIDEBAR_BG);
-        initComponents();
+        initComponents(); // Tüm arayüz bileşenlerini oluşturuyoruz
     }
 
+    // Formdaki tüm butonları, label'ları ve field'ları buraya ekliyoruz
     private void initComponents() {
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -46,6 +49,7 @@ public class LoginView extends JFrame {
         userLabel.setForeground(new Color(180, 200, 210));
         userLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        // Sistemdeki kullanıcıları açılır listede gösteriyoruz
         userCombo = new StyledUserCombo();
         userCombo.setMaximumSize(new Dimension(300, 45));
         userCombo.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -54,14 +58,14 @@ public class LoginView extends JFrame {
             userCombo.addItem(u);
         }
 
-        // Seçilen kullanıcıya göre rol(Admin/Eczacı) otomatik değişiyor, kullanıcı kim
-        // olduğunu görsün.
+        // Seçilen kullanıcıya göre rol(Admin/Eczacı) otomatik değişiyor, kullanıcı kim olduğunu görsün
         roleLabel = new JLabel("");
         roleLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
         roleLabel.setForeground(ACCENT);
         roleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         updateRoleLabel();
 
+        // Kullanıcı listeden farklı birini seçince rol etiketi de güncelleniyor
         userCombo.addActionListener(e -> updateRoleLabel());
 
         // Password label
@@ -74,10 +78,12 @@ public class LoginView extends JFrame {
         passwordField.setMaximumSize(new Dimension(300, 45));
         passwordField.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        // Login butonuna basınca handleLogin tetikleniyor
         loginButton = new RoundedButton("Login");
         loginButton.setMaximumSize(new Dimension(300, 40));
         loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         loginButton.addActionListener(this::handleLogin);
+        // Enter tuşuna basıldığında da Login çalışsın
         getRootPane().setDefaultButton(loginButton);
 
         mainPanel.add(Box.createVerticalGlue());
@@ -99,6 +105,7 @@ public class LoginView extends JFrame {
         add(mainPanel);
     }
 
+    // Listeden seçilen kullanıcının rolünü etikette gösteriyoruz (Admin / Staff / Pharmacist)
     private void updateRoleLabel() {
         User selected = (User) userCombo.getSelectedItem();
         if (selected != null && selected.getRole() != null) {
@@ -108,11 +115,12 @@ public class LoginView extends JFrame {
         }
     }
 
-    // Giriş kontrolleri
+    // "Login" butonuna tıklayınca bu metot çalışıyor — kullanıcı giriş yapılıyor
     private void handleLogin(ActionEvent e) {
         User selectedUser = (User) userCombo.getSelectedItem();
         String password = new String(passwordField.getPassword());
 
+        // Kullanıcı seçilmemişse veya şifre boşsa hata ver
         if (selectedUser == null || password.isEmpty()) {
             ThemedDialog.showMessage(this, "Valid User and Password required.", ThemedDialog.Kind.ERROR);
             return;
@@ -121,6 +129,7 @@ public class LoginView extends JFrame {
         try {
             boolean success = loginController.login(selectedUser.getUsername(), password);
             if (success) {
+                // Giriş başarılıysa login ekranını kapat ve Dashboard'ı aç
                 LoginView.this.dispose();
                 DashboardView dashboard = new DashboardView(
                     loginController.getInventoryController(),
@@ -130,20 +139,24 @@ public class LoginView extends JFrame {
                 );
                 dashboard.setVisible(true);
             } else {
+                // Şifre yanlışsa alanı temizle ve hata mesajı göster
                 ThemedDialog.showMessage(LoginView.this, "Invalid credentials.", ThemedDialog.Kind.ERROR);
                 passwordField.setText("");
             }
         } catch (Exception ex) {
+            // Beklenmedik hata olursa genel hata mesajı göster — program çökmesin
             ThemedDialog.showMessage(LoginView.this, "System error.", ThemedDialog.Kind.ERROR);
         }
     }
 
+    // Kullanıcı listesinin görünümünü özelleştiren iç sınıf — sadece stil işi
     static class StyledUserCombo extends JComboBox<User> {
         public StyledUserCombo() {
             setOpaque(false);
             setFont(new Font("SansSerif", Font.PLAIN, 14));
             setForeground(new Color(60, 60, 60));
             setBorder(new EmptyBorder(0, 0, 0, 0));
+            // Her liste elemanında kullanıcı adı ve rolü birlikte gösteriyoruz
             setRenderer(new DefaultListCellRenderer() {
                 @Override
                 public Component getListCellRendererComponent(JList<?> list, Object value, int index,
@@ -178,6 +191,7 @@ public class LoginView extends JFrame {
 
                 @Override
                 public void paintCurrentValueBackground(Graphics g, Rectangle bounds, boolean hasFocus) {
+                    // Seçili değerin arka planını yuvarlak yapıyoruz — güzel görünsün
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     g2.setColor(new Color(242, 242, 242));
@@ -189,6 +203,7 @@ public class LoginView extends JFrame {
 
         @Override
         protected void paintComponent(Graphics g) {
+            // Dropdown kutusunun arka planını yuvarlak kenarlı yapıyoruz
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(new Color(242, 242, 242));
@@ -198,6 +213,7 @@ public class LoginView extends JFrame {
         }
     }
 
+    // Şifre alanı için özel sınıf — klavye girişi gizleniyor (nokta nokta gösteriyor)
     class RoundedPasswordField extends JPasswordField {
         private final String hint;
 
@@ -216,7 +232,7 @@ public class LoginView extends JFrame {
             g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 30, 30);
             super.paintComponent(g);
 
-            // Draw placeholder hint when empty and not focused
+            // Alan boşsa ve odak bu alanda değilse placeholder metni göster
             if (getPassword().length == 0 && !isFocusOwner()) {
                 g2.setColor(new Color(160, 160, 160));
                 g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
@@ -227,6 +243,7 @@ public class LoginView extends JFrame {
         }
     }
 
+    // Login butonu için özel sınıf — fareyle üzerine gelince rengi değişiyor (hover efekti)
     class RoundedButton extends JButton {
         public RoundedButton(String text) {
             super(text);
@@ -236,13 +253,14 @@ public class LoginView extends JFrame {
             setOpaque(false);
             setFont(new Font("SansSerif", Font.PLAIN, 15));
             setForeground(Color.WHITE);
-            setCursor(new Cursor(Cursor.HAND_CURSOR));
+            setCursor(new Cursor(Cursor.HAND_CURSOR)); // El imleci — tıklanabilir olduğunu gösterir
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            // Basılıysa koyu renk, üstündeyse açık, normal halde ana renk
             g2.setColor(getModel().isArmed() ? ACCENT_DARK : getModel().isRollover() ? ACCENT_HOVER : ACCENT);
             g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 30, 30);
             super.paintComponent(g);

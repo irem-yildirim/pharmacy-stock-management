@@ -12,11 +12,13 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.List;
 
+// Stok satın alma ekranı — Brands sayfasındaki "Buy Stock" butonu bunu açıyor
 public class PurchaseDialog extends JDialog {
 
     private final TransactionController transactionController;
     private final InventoryController inventoryController;
     private final DashboardView parent;
+    // Bu dialog açılırken hangi markadan geldiğimizi biliyoruz — listeyi önceden filtreliyoruz
     private final int presetBrandId;
 
     private JComboBox<Drug> medicineCombo;
@@ -41,6 +43,7 @@ public class PurchaseDialog extends JDialog {
         add(buildFooter(), BorderLayout.SOUTH);
     }
 
+    // Koyu başlık şeridi
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(SIDEBAR_BG);
@@ -54,6 +57,7 @@ public class PurchaseDialog extends JDialog {
         return header;
     }
 
+    // Alım formu: Markaya ait ilaçlar seçilir, miktar girilir
     private JPanel buildForm() {
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
@@ -68,11 +72,13 @@ public class PurchaseDialog extends JDialog {
         form.add(Box.createVerticalStrut(4));
 
         medicineCombo = new JComboBox<>();
+        // Sadece bu markaya ait ilaçları getiriyoruz — gereksiz seçenekler gösterme
         List<Drug> brandDrugs = inventoryController.getMedicinesByBrand(presetBrandId);
         for (Drug d : brandDrugs) {
             medicineCombo.addItem(d);
         }
 
+        // Listede ilaç adı ve şu anki stok miktarını gösteriyoruz
         medicineCombo.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -97,6 +103,7 @@ public class PurchaseDialog extends JDialog {
         form.add(qtyLabel);
         form.add(Box.createVerticalStrut(4));
 
+        // Alım için 10'ar artışla 1-10000 arası miktar girilebilir
         quantitySpinner = new JSpinner(new SpinnerNumberModel(10, 1, 10000, 10));
         quantitySpinner.setFont(FONT_BODY);
         quantitySpinner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
@@ -110,8 +117,9 @@ public class PurchaseDialog extends JDialog {
         totalLabel.setForeground(DANGER); // Gider olduğu için kırmızımsı
         totalLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.add(totalLabel);
-        
-        if(brandDrugs.isEmpty()) {
+
+        if (brandDrugs.isEmpty()) {
+            // Bu markada hiç ilaç yoksa formu pasif bırak
             medicineCombo.setEnabled(false);
             quantitySpinner.setEnabled(false);
         } else {
@@ -122,6 +130,7 @@ public class PurchaseDialog extends JDialog {
         return form;
     }
 
+    // Toplam alım maliyetini hesaplıyoruz — adet x alış fiyatı
     private void updateTotal() {
         Object selected = medicineCombo.getSelectedItem();
         if (selected instanceof Drug) {
@@ -134,6 +143,7 @@ public class PurchaseDialog extends JDialog {
         }
     }
 
+    // İptal ve Satın Al butonları
     private JPanel buildFooter() {
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 10));
         footer.setBackground(new Color(248, 248, 248));
@@ -162,7 +172,8 @@ public class PurchaseDialog extends JDialog {
         purchaseBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         purchaseBtn.setBorder(new EmptyBorder(7, 20, 7, 20));
         purchaseBtn.addActionListener(e -> handlePurchase());
-        
+
+        // Listede hiç ilaç yoksa butonu pasif bırak
         if (medicineCombo.getItemCount() == 0) {
             purchaseBtn.setEnabled(false);
         }
@@ -172,6 +183,7 @@ public class PurchaseDialog extends JDialog {
         return footer;
     }
 
+    // "Buy Stock" butonuna basılınca stok alımını servise iletiyoruz
     private void handlePurchase() {
         Object selected = medicineCombo.getSelectedItem();
         if (!(selected instanceof Drug)) return;
@@ -184,11 +196,12 @@ public class PurchaseDialog extends JDialog {
             if (success) {
                 ThemedDialog.showMessage(this, "Stock purchased successfully!", ThemedDialog.Kind.SUCCESS);
                 dispose();
-                parent.loadTableData();
+                parent.loadTableData(); // Envanter güncellendi, sayfayı yenile
             } else {
                 ThemedDialog.showMessage(this, "Failed to purchase stock.", ThemedDialog.Kind.ERROR);
             }
         } catch (IllegalArgumentException e) {
+            // Hatalı barkod veya geçersiz miktar gelirse servisten fırlatılıyor — ekranda göster
             ThemedDialog.showMessage(this, e.getMessage(), ThemedDialog.Kind.ERROR);
         }
     }
